@@ -94,7 +94,7 @@ public class Config {
 		
 		// Closes the file
 		br.close();
-		return this;
+		return this.saveConfig();
 	}
 	
 	/**
