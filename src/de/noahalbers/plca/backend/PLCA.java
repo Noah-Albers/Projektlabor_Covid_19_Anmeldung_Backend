@@ -1,7 +1,6 @@
 package de.noahalbers.plca.backend;
 
 import java.io.IOException;
-import java.util.Optional;
 
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -9,7 +8,6 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import de.noahalbers.plca.backend.chatmessenger.TelegramBot;
 import de.noahalbers.plca.backend.database.PLCADatabase;
-import de.noahalbers.plca.backend.server.PLCAServer;
 
 public class PLCA {
 
@@ -22,9 +20,6 @@ public class PLCA {
 	// Connection handler for the database
 	private PLCADatabase database;
 	
-	// Server handler for connection (Covid-login and admins)
-	private PLCAServer server;
-	
 	// Config for the program
 	private Config config = new Config()
 			.register("token", null)
@@ -34,9 +29,7 @@ public class PLCA {
 			.register("db_user", "root")
 			.register("db_password", "")
 			.register("db_databasename", "test")
-			.register("connection_timeout", "5000")
-			.register("applogin_pubK", "")
-			.register("port", "1337");
+			.register("connection_timeout", "5000");
 	
 	private PLCA() {
 		SINGLETON_INSTANCE = this;
@@ -46,26 +39,16 @@ public class PLCA {
 	 * Inits and starts the program. Should only be called once.
 	 */
 	public void init() {
-		
-		// Ensures that the current runtime support rsa and aes
-		Optional<String> optError = new EncryptionManager().init();
-		
-		// Checks if one of them isn't supported
-		if(new EncryptionManager().init().isPresent()) {
-			System.out.println(optError.get()+" is not supported.");
-			return;
-		}
-		
 		try {
 			// TODO: Handle exception
 			// Loads the config	
 			this.config.loadConfig();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
 			return;
 		}
 		
-		// Creates the database
+		// Gets the database handler
 		this.database = new PLCADatabase();
 		
 		// TODO: Handle exceptions
@@ -78,14 +61,7 @@ public class PLCA {
 			return;
 		}
 		
-		// TODO: handle exception
-		try {
-			// Start the server
-			this.server = new PLCAServer();
-			this.server.start();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		System.out.println("Main stuff or smth");
 	}
 	
 	public TelegramBot getMessenger() {
@@ -98,10 +74,6 @@ public class PLCA {
 
 	public Config getConfig() {
 		return this.config;
-	}
-	
-	public PLCAServer getServer() {
-		return this.server;
 	}
 	
 	public static PLCA getInstance() {

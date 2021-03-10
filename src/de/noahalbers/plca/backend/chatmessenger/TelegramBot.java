@@ -3,9 +3,12 @@ package de.noahalbers.plca.backend.chatmessenger;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import de.noahalbers.plca.backend.Config;
+import de.noahalbers.plca.backend.PLCA;
 
 public class TelegramBot extends TelegramLongPollingBot{
+	
+	// Reference to the main program
+	private PLCA plca = PLCA.getInstance();
 	
 	@Override
 	public void onUpdateReceived(Update update) {
@@ -14,12 +17,12 @@ public class TelegramBot extends TelegramLongPollingBot{
 
 	@Override
 	public String getBotUsername() {
-		return Config.getInstance().get("botname");
+		return this.plca.getConfig().getString("botname");
 	}
 
 	@Override
 	public String getBotToken() {
-		return Config.getInstance().get("token");
+		return this.plca.getConfig().getString("token");
 	}
 
 }

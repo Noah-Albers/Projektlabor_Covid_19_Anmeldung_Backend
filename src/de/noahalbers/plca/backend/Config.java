@@ -15,22 +15,8 @@ public class Config {
 	// Location of the config file
 	private static final File CONFIG_FILE = new File("config.cfg");
 	
-	// Singleton instance to access the config
-	private static Config SINGLETON_INSTANCE;
-
 	// Contains all loaded config values
 	private Map<String,String> loadedConfig = new HashMap<>();
-	
-	private Config() {
-		SINGLETON_INSTANCE = this;
-	}
-	
-	public static Config getInstance() {
-		// Checks if the config doesn't exist yet
-		if(SINGLETON_INSTANCE == null)
-			SINGLETON_INSTANCE = new Config();
-		return SINGLETON_INSTANCE;
-	}
 	
 	/**
 	 * Saves the currently settings to the config-file
@@ -110,7 +96,9 @@ public class Config {
 	/**
 	 * Returns the saved settings value (Default or loaded)
 	 */
-	public String get(String key) {
+	public String getString(String key) {
 		return this.loadedConfig.getOrDefault(key, null);
 	}
+	
+	
 }

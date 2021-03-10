@@ -5,8 +5,12 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import de.noahalbers.plca.backend.Config;
+import de.noahalbers.plca.backend.PLCA;
 
 public class PLCADatabase {
+	
+	// Reference to the program
+	private PLCA plca = PLCA.getInstance();
 	
 	/**
 	 * Tries to start a connection to the database
@@ -14,15 +18,18 @@ public class PLCADatabase {
 	 * @throws SQLException if anything went wrong
 	 */
 	public Connection startConnection() throws SQLException {
+		// Gets the config
+		Config cfg = this.plca.getConfig();
+		
 		return DriverManager.getConnection(
 			String.format(
 				"jdbc:mysql://%s:%s/%s",
-				Config.getInstance().get("db_host"),
-				Config.getInstance().get("db_port"),
-				Config.getInstance().get("db_databasename")
+				cfg.getString("db_host"),
+				cfg.getString("db_port"),
+				cfg.getString("db_databasename")
 			),
-			Config.getInstance().get("db_user"),
-			Config.getInstance().get("db_password")
+			cfg.getString("db_user"),
+			cfg.getString("db_password")
 		);
 	}
 	
