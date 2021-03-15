@@ -96,7 +96,7 @@ public class Config {
 	/**
 	 * Returns the saved settings value (Default or loaded)
 	 */
-	public String getString(String key) {
+	public String get(String key) {
 		return this.loadedConfig.getOrDefault(key, null);
 	}
 	

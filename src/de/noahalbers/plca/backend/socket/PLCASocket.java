@@ -1,76 +1,57 @@
 package de.noahalbers.plca.backend.socket;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.function.Consumer;
 
-import de.noahalbers.plca.backend.Config;
-import de.noahalbers.plca.backend.PLCA;
+import de.noahalbers.plca.backend.socket.exception.PLCAConnectionTimeoutException;
 
-public class PLCASocket extends Thread{
-	
-	// Reference to the program
-	private PLCA plca = PLCA.getInstance();
-	
+public class PLCASocket {
+
 	// Gets the send timeout
 	private final long sendTimeout;
+	
+	// Last the that the remote client has send data (in ms)
+	private long lastSendTime;
 	
 	// Socket connection to the remote client
 	private Socket socket;
 	
 	// Reader and writer for the connection
-	private BufferedReader reader;
-	private BufferedWriter writer;
+	private InputStream reader;
+	private OutputStream writer;
 	
-	// Callback function for when the connection status changes
-	private Consumer<ConnectionStatus> onStatusChange;
-	
-	// Last the that the remote client has send data (in ms)
-	private long lastSendTime;
-	
-	public PLCASocket(Socket socket,Consumer<ConnectionStatus> onStatusChange) throws NumberFormatException {
+	public PLCASocket(Socket socket,long timeout) {
 		this.socket=socket;
-		this.onStatusChange=onStatusChange;
-		this.sendTimeout = Long.parseLong(this.plca.getConfig().getString("connection_timeout"));
-	}
-	
-	@Override
-	public void run() {
-		// Tries to open the connection
+		this.sendTimeout = timeout;
+		
+		// Gets the reader and writer
 		try {
-			this.reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream(), StandardCharsets.UTF_8));
-			this.writer = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream(), StandardCharsets.UTF_8));
-		} catch (IOException e) {
-			// Closes the socket
-			this.killConnection(true);
-			return;
-		}
-		
-		// Waits the identification index
-		int identityID;
-		try {
-			identityID = this.read();
-		} catch (Exception e) {
-			return;
-		}
-		
-		// Gets the 
-		
+			this.reader = this.socket.getInputStream();
+			this.writer = this.socket.getOutputStream();
+		} catch (IOException e) {}
 	}
 	
 	/**
-	 * Reads the next byte from the stream and timeouts if it took to long to reach.
-	 * 
-	 * If an exception is thrown, the socket had already been killed
-	 * @return the next byte
-	 * @throws Exception if the connection had to be terminated
+	 * Takes an array with that will be filled with next next bytes that get be received.
+	 * @throws PLCAConnectionTimeoutException if the connection timed out
+	 * @throws IOException if anything went wrong with the I/O
 	 */
-	private int read() throws Exception{
+	public void readByte(byte[] toFill) throws IOException, PLCAConnectionTimeoutException {
+		// Iterates over all slots
+		for(int i=0;i<toFill.length;i++)
+			// Fill the slot
+			toFill[i] = this.readByte();
+	}
+	
+	/**
+	 * Reads a single unsigned byte
+	 * @return the byte
+	 * @throws IOException if anything went wrong with the I/O
+	 * @throws PLCAConnectionTimeoutException
+	 */
+	public short readUByte() throws IOException,PLCAConnectionTimeoutException {
 		// Updates the timeout
 		this.lastSendTime = System.currentTimeMillis();
 		
@@ -78,29 +59,60 @@ public class PLCASocket extends Thread{
 		while(System.currentTimeMillis()-this.lastSendTime <= this.sendTimeout) {
 			try {
 				// Checks if a new byte got received
-				if(this.reader.ready())
-					return this.reader.read();
+				if(this.reader.available() > 0)
+					return (short) this.reader.read();
+				else
+					Thread.sleep(10);
 			} catch (IOException e) {
-				this.killConnection(true);
+				//TODO: Handle logging
+				this.killConnection();
 				throw e;
-			}
+			} catch(InterruptedException e) {};
 			
-			Thread.sleep(10);
 		}
 		// Kills the connection
-		this.killConnection(false);
-		// Sends the status
-		this.onStatusChange.accept(ConnectionStatus.DISCONNECTED_TIMEOUT);
-		// Throws an timeout
-		throw new Exception("Timeout");
+		this.killConnection();
+		//TODO: handle logging
+		throw new PLCAConnectionTimeoutException();
+	}
+	
+	/**
+	 * Reads a single signed byte
+	 * @return the byte
+	 * @throws IOException if anything went wrong with the I/O
+	 * @throws PLCAConnectionTimeoutException if the connection timed out
+	 */
+	public byte readByte() throws IOException,PLCAConnectionTimeoutException {
+		return (byte)(this.readUByte() & 0xff);
+	}
+	
+	/**
+	 * Sends data to the remote device
+	 * @param data the byte to send
+	 * @throws IOException if an i/o error occurs
+	 */
+	public void write(byte data) throws IOException {
+		this.writer.write(data);
+	}
+	
+	/**
+	 * Writes all bytes to the stream
+	 * @param data the data to send
+	 * @throws IOException if anything went wrong with I/O
+	 */
+	public void write(byte[] data) throws IOException{
+		this.writer.write(data);
+	}
+	
+	// Wrapper to flush to the socket
+	public void flush() throws IOException {
+		this.writer.flush();
 	}
 	
 	/**
 	 * Kills the socket connection
-	 * 
-	 * @param executeCallback if the status-callback should be called with disconnect
 	 */
-	public void killConnection(boolean executeCallback) {
+	public void killConnection() {
 		// Checks if the socket is still alive
 		if(this.socket != null) {
 			try {
@@ -108,11 +120,6 @@ public class PLCASocket extends Thread{
 				this.socket.close();
 			} catch (IOException e) {}
 			this.socket = null;
-			
-			// Checks if the status-callback should be executed
-			if(executeCallback)
-				this.onStatusChange.accept(ConnectionStatus.DISCONNECTED);
 		}
 	}
-	
 }

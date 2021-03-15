@@ -12,17 +12,20 @@ public class TelegramBot extends TelegramLongPollingBot{
 	
 	@Override
 	public void onUpdateReceived(Update update) {
+		if(update.getMessage().getFrom().getIsBot())
+			return;
+		
 		System.out.println("Update: "+update.getMessage().getText());
 	}
 
 	@Override
 	public String getBotUsername() {
-		return this.plca.getConfig().getString("botname");
+		return this.plca.getConfig().get("botname");
 	}
 
 	@Override
 	public String getBotToken() {
-		return this.plca.getConfig().getString("token");
+		return this.plca.getConfig().get("token");
 	}
 
 }

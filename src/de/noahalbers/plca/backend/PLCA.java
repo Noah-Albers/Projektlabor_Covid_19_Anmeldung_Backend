@@ -1,6 +1,8 @@
 package de.noahalbers.plca.backend;
 
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.Optional;
 
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -8,6 +10,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import de.noahalbers.plca.backend.chatmessenger.TelegramBot;
 import de.noahalbers.plca.backend.database.PLCADatabase;
+import de.noahalbers.plca.backend.socket.PLCAConnection;
 
 public class PLCA {
 
@@ -29,7 +32,8 @@ public class PLCA {
 			.register("db_user", "root")
 			.register("db_password", "")
 			.register("db_databasename", "test")
-			.register("connection_timeout", "5000");
+			.register("connection_timeout", "5000")
+			.register("applogin_pubK", "");
 	
 	private PLCA() {
 		SINGLETON_INSTANCE = this;
@@ -39,6 +43,16 @@ public class PLCA {
 	 * Inits and starts the program. Should only be called once.
 	 */
 	public void init() {
+		
+		// Ensures that the current runtime support rsa and aes
+		Optional<String> optError = new EncryptionManager().init();
+		
+		// Checks if one of them isn't supported
+		if(new EncryptionManager().init().isPresent()) {
+			System.out.println(optError.get()+" is not supported.");
+			return;
+		}
+		
 		try {
 			// TODO: Handle exception
 			// Loads the config	
@@ -48,7 +62,7 @@ public class PLCA {
 			return;
 		}
 		
-		// Gets the database handler
+		// Creates the database
 		this.database = new PLCADatabase();
 		
 		// TODO: Handle exceptions
@@ -61,7 +75,18 @@ public class PLCA {
 			return;
 		}
 		
-		System.out.println("Main stuff or smth");
+		// TODO: Handle exceptions
+		try {
+			// TODO: make better
+			@SuppressWarnings("resource")
+			ServerSocket ss = new ServerSocket(1337);
+			
+			while(true) {
+				new PLCAConnection(ss.accept(), System.out::println).start();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public TelegramBot getMessenger() {

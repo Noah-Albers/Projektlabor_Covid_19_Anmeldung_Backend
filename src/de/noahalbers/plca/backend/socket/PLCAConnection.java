@@ -14,7 +14,6 @@ import javax.annotation.Nullable;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.mysql.cj.exceptions.RSAException;
@@ -22,7 +21,6 @@ import com.mysql.cj.exceptions.RSAException;
 import de.noahalbers.plca.backend.EncryptionManager;
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.entitys.AdminEntity;
-import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
 import de.noahalbers.plca.backend.socket.exception.PLCAAdminNotFoundException;
 import de.noahalbers.plca.backend.socket.exception.PLCAConnectionTimeoutException;
 
@@ -46,10 +44,6 @@ public class PLCAConnection extends Thread{
 	// The admin that is connected. If not admin is connected, the field will be null
 	@Nullable private AdminEntity connectedAdmin;
 	
-	// The remote key after the ssl-like handshake. Will only be available after the handshake.
-	@Nullable private SecretKeySpec aesKey;
-	@Nullable private IvParameterSpec aesIv;
-	
 	public PLCAConnection(Socket socket,Consumer<ConnectionStatus> onStatusChange) throws NumberFormatException {
 		this.onStatusChange=onStatusChange;
 		this.socket = new PLCASocket(socket, Long.parseLong(this.plca.getConfig().get("connection_timeout")));
@@ -58,45 +52,6 @@ public class PLCAConnection extends Thread{
 	
 	@Override
 	public void run() {
-		try {
-			// Does the handshake with the remote client to provide a secure connection
-			this.doHandshake();
-			
-			// Now we have a secure connection an can start to send data
-			
-			// Waits for the request-packet
-			JSONObject pkt = this.receivePacket();
-			
-			// Gets the endpoint id
-			int endptId = pkt.getInt("endpoint");
-			
-			// Gets the reqeust-handler
-			RequestHandler handler = this.plca.getServer().getHandlerById(endptId);
-			
-			// Checks if the handler exists
-			if(handler == null) {
-				// TODO: Send back error
-				throw new IOException("No handler for id: "+endptId);
-			}
-			
-			// Ends the connection
-			this.killConnection(ConnectionStatus.DISCONNECTED_SUCCESS);
-		} catch (Exception e) {
-			e.printStackTrace();
-			//TODO: handle different exceptions
-			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
-			return;
-		}
-	}
-	
-	/**
-	 * Establishes a secure connection with the remote client
-	 * @throws IOException if anything happens with the I/O
-	 * @throws RSAException if there is an exception with the encryption
-	 * @throws SQLException if there is an exception with the sql-server
-	 * @throws PLCAAdminNotFoundException if the admin could not be found
-	 */
-	private void doHandshake() throws IOException, RSAException, SQLException, PLCAAdminNotFoundException {
 		try {
 			// Gets the client id (0 is the covid-login)
 			short clientId = this.socket.readUByte();
@@ -108,15 +63,15 @@ public class PLCAConnection extends Thread{
 			PublicKey remoteKey = this.getKeyAndPrepare(clientId);
 			
 			// Generates the secret for the communication (AES-Key and AES-Init-Vector)
-			this.aesKey = this.encryptionManager.generateAESKey();
-			this.aesIv = this.encryptionManager.generateAESIV();
+			SecretKeySpec key = this.encryptionManager.generateAESKey();
+			IvParameterSpec iv = this.encryptionManager.generateAESIV();
 			
 			// Holds the combined bytes of the key and iv as a packet to send
 			byte[] packet = new byte[32+16];
 			
 			// Stores the key and iv into the packet
-			System.arraycopy(this.aesKey.getEncoded(), 0, packet, 0, 32);
-			System.arraycopy(this.aesIv.getIV(), 0, packet, 32, 16);
+			System.arraycopy(key.getEncoded(), 0, packet, 0, 32);
+			System.arraycopy(iv.getIV(), 0, packet, 32, 16);
 			
 			System.out.println(Arrays.toString(packet));
 			
@@ -126,15 +81,29 @@ public class PLCAConnection extends Thread{
 			// Checks if anything went wrong with the encryption
 			if(!optEnc.isPresent())
 				// TODO
-				throw new IOException("Error while encrypting with the public-key.");
+				throw new Exception("Error while encrypting with the public-key.");
 			
 			// Sends the encrypted aes-key and aes-iv
 			this.socket.write(optEnc.get());
 			// Updates the socket
 			this.socket.flush();
-		} catch (IOException | RSAException | SQLException | PLCAAdminNotFoundException e) {
+			
+			/*
+			 * Handshake is complete
+			 * */
+			
+			// Waits for the request-packet
+			byte[] pkt = this.receivePacket(key,iv);
+			
+			System.out.println("Received: "+new String(pkt,StandardCharsets.UTF_8));
+			
+			// Ends the connection
+			this.killConnection(ConnectionStatus.DISCONNECTED_SUCCESS);
+		} catch (Exception e) {
 			e.printStackTrace();
+			//TODO: handle different exceptions
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
+			return;
 		}
 	}
 	
@@ -151,6 +120,7 @@ public class PLCAConnection extends Thread{
 	 * @throws PLCAAdminNotFoundException if the admin could not be found (the id does not correlate with any database entry's)
 	 */
 	private PublicKey getKeyAndPrepare(short id) throws SQLException,RSAException,PLCAAdminNotFoundException{
+		
 		// Checks if the requester is from the covid-login
 		System.out.println(this.plca.getConfig().get("applogin_pubK"));
 		if(id == 0)
@@ -163,8 +133,11 @@ public class PLCAConnection extends Thread{
 		Optional<AdminEntity> adm = this.plca.getDatabase().getAdminById(1, this.dbconnection);
 		
 		// Checks if the admin account got found
-		if(!adm.isPresent())
+		if(!adm.isPresent()) {
+			// TODO: send error
+			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 			throw new PLCAAdminNotFoundException();
+		}
 		
 		// Stores the admin
 		this.connectedAdmin = adm.get();
@@ -174,75 +147,58 @@ public class PLCAConnection extends Thread{
 	}
 	
 	/**
-	 * Can only be used after the handshake is completed.
-	 * 
 	 * Waits for the next packet to be send
-	 * @return the raw packet that got received (Json)
+	 * @param key the aes key for the decryption
+	 * @param iv the init vector for the aes decryption
+	 * @return the raw data from the packet (Encrypted)
 	 * @throws IOException if anything went wrong with the I/O or if the decryption fails
 	 * @throws PLCAConnectionTimeoutException if the connection timed out
 	 */
-	public JSONObject receivePacket() throws IOException {
-		try {
-			// Waits for the request
-			int len = this.socket.readUByte() | (this.socket.readUByte() << 8);
-			
-			// Create the space for the amount of bytes that will be received
-			byte[] data = new byte[len];
-			
-			// Receives the data
-			this.socket.readByte(data);
-			
-			// Tries to decrypt the data
-			Optional<byte[]> optDec = this.encryptionManager.decryptAES(data, this.aesKey, this.aesIv);
-			
-			// Checks if the decryption failed
-			if(!optDec.isPresent())
-				throw new IOException("Failed to decrypt received message: "+Arrays.toString(data));
-			
-			return new JSONObject(new String(optDec.get(),StandardCharsets.UTF_8));
-		}catch(IOException e) {
-			// Ensures a terminated connection
-			this.killConnection(ConnectionStatus.DISCONNECTED_IO);
-			throw e;
-		}catch(JSONException e) {
-			// Ensures a terminated connection
-			this.killConnection(ConnectionStatus.DISCONNECTED_JSON);
-			throw new IOException("Failed to parse json");
-		}
+	public byte[] receivePacket(SecretKeySpec key,IvParameterSpec iv) throws IOException, PLCAConnectionTimeoutException {
+		// Waits for the request
+		int len = this.socket.readUByte() | (this.socket.readUByte() << 8);
+		
+		// Create the space for the amount of bytes that will be received
+		byte[] data = new byte[len];
+		
+		// Receives the data
+		this.socket.readByte(data);
+		
+		// Tries to decrypt the data
+		Optional<byte[]> optDec = this.encryptionManager.decryptAES(data, key, iv);
+		
+		// Checks if the decryption failed
+		if(!optDec.isPresent())
+			throw new IOException("Failed to decrypt received message: "+Arrays.toString(data));
+		
+		return optDec.get();
 	}
 	
 	/**
-	 * Can only be used after the handshake is completed.
-	 * 
 	 * Sends a packet that is encrypted using the agreed key
-	 * @param data the packet that shall be send (Json)
+	 * @param data the data to send (Cannot be more than the size of a short)
 	 * @param key the aes key
 	 * @param iv the aes init vector
 	 * @throws IOException if anything happens with the I/O or the encryption failes
 	 */
-	public void sendPacket(JSONObject data) throws IOException {
-		try {
-			// Tries to encrypt the message
-			Optional<byte[]> optEnc = this.encryptionManager.encryptAES(data.toString().getBytes(StandardCharsets.UTF_8), this.aesKey, this.aesIv);
-			
-			// Checks if the encryption failed
-			if(!optEnc.isPresent())
-				throw new IOException("Failed to encrypt message.");
-			
-			byte[] pkt = optEnc.get();
-			
-			// Sends the length for the response
-			this.socket.write((byte) pkt.length);
-			this.socket.write((byte) (pkt.length>>8));
-			
-			// Sends the data
-			this.socket.write(pkt);
-			this.socket.flush();
-		}catch(IOException e) {
-			// Ensures a terminated connection
-			this.killConnection(ConnectionStatus.DISCONNECTED_IO);
-			throw e;
-		}
+	public void sendPacket(byte[] data,SecretKeySpec key,IvParameterSpec iv) throws IOException {
+		
+		// Tries to encrypt the message
+		Optional<byte[]> optEnc = this.encryptionManager.encryptAES(data, key, iv);
+		
+		// Checks if the encryption failed
+		if(!optEnc.isPresent())
+			throw new IOException("Failed to encrypt message.");
+		
+		byte[] pkt = optEnc.get();
+		
+		// Sends the length for the response
+		this.socket.write((byte) pkt.length);
+		this.socket.write((byte) (pkt.length>>8));
+		
+		// Sends the data
+		this.socket.write(pkt);
+		this.socket.flush();
 	}
 	
 	/**
@@ -264,5 +220,6 @@ public class PLCAConnection extends Thread{
 		// Executes the callback if required
 		if(optCallback != null)
 			this.onStatusChange.accept(optCallback);
+		
 	}
 }
