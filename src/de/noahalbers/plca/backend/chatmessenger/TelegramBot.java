@@ -12,10 +12,12 @@ public class TelegramBot extends TelegramLongPollingBot{
 	
 	@Override
 	public void onUpdateReceived(Update update) {
+		// Checks that the sender is no bot himself
 		if(update.getMessage().getFrom().getIsBot())
 			return;
 		
-		System.out.println("Update: "+update.getMessage().getText());
+		// Logs the message
+		System.out.println("Received telegram-message: "+update.getMessage().getText());
 	}
 
 	@Override

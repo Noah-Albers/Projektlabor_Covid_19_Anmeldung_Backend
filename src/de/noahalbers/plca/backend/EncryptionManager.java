@@ -37,11 +37,6 @@ public class EncryptionManager {
 	// Secure random number generator
 	private SecureRandom random = new SecureRandom();
 	
-	@FunctionalInterface
-	interface UnsafeProvider<T>{
-		public T get() throws Exception;
-	}
-	
 	/**
 	 * Creates the instances for all encryption/hash methodes.
 	 * @return empty if everything went right; if any encryption/hash method is not supported, return the name
@@ -224,5 +219,10 @@ public class EncryptionManager {
 		} catch (Exception e) {
 			return null;
 		}
+	}
+	
+	@FunctionalInterface
+	public interface UnsafeProvider<T>{
+		public T get() throws Exception;
 	}
 }

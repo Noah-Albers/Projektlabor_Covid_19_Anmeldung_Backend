@@ -1,7 +1,6 @@
 package de.noahalbers.plca.backend;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.util.Optional;
 
 import org.telegram.telegrambots.meta.TelegramBotsApi;
@@ -10,7 +9,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import de.noahalbers.plca.backend.chatmessenger.TelegramBot;
 import de.noahalbers.plca.backend.database.PLCADatabase;
-import de.noahalbers.plca.backend.socket.PLCAConnection;
+import de.noahalbers.plca.backend.server.PLCAServer;
 
 public class PLCA {
 
@@ -23,6 +22,9 @@ public class PLCA {
 	// Connection handler for the database
 	private PLCADatabase database;
 	
+	// Server handler for connection (Covid-login and admins)
+	private PLCAServer server;
+	
 	// Config for the program
 	private Config config = new Config()
 			.register("token", null)
@@ -33,7 +35,8 @@ public class PLCA {
 			.register("db_password", "")
 			.register("db_databasename", "test")
 			.register("connection_timeout", "5000")
-			.register("applogin_pubK", "");
+			.register("applogin_pubK", "")
+			.register("port", "1337");
 	
 	private PLCA() {
 		SINGLETON_INSTANCE = this;
@@ -57,8 +60,8 @@ public class PLCA {
 			// TODO: Handle exception
 			// Loads the config	
 			this.config.loadConfig();
-		} catch (IOException e1) {
-			e1.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 			return;
 		}
 		
@@ -75,15 +78,11 @@ public class PLCA {
 			return;
 		}
 		
-		// TODO: Handle exceptions
+		// TODO: handle exception
 		try {
-			// TODO: make better
-			@SuppressWarnings("resource")
-			ServerSocket ss = new ServerSocket(1337);
-			
-			while(true) {
-				new PLCAConnection(ss.accept(), System.out::println).start();
-			}
+			// Start the server
+			this.server = new PLCAServer();
+			this.server.start();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -99,6 +98,10 @@ public class PLCA {
 
 	public Config getConfig() {
 		return this.config;
+	}
+	
+	public PLCAServer getServer() {
+		return this.server;
 	}
 	
 	public static PLCA getInstance() {
