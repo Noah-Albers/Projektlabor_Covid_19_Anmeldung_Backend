@@ -9,8 +9,8 @@ import javax.annotation.Nullable;
 
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
-import de.noahalbers.plca.backend.server.reqeusts.handlers.TestRequest;
-import de.noahalbers.plca.backend.socket.PLCAConnection;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.GrabUsersRequest;
+import de.noahalbers.plca.backend.server.socket.PLCAConnection;
 
 public class PLCAServer extends Thread{
 
@@ -23,7 +23,7 @@ public class PLCAServer extends Thread{
 	// Registers all request-handlers
 	private Map<Integer/*Id*/,RequestHandler> handlers = new HashMap<Integer/*Id*/,RequestHandler>();
 	{
-		handlers.put(0, new TestRequest());
+		handlers.put(0, new GrabUsersRequest());
 	}
 	
 	public PLCAServer() throws IOException {
