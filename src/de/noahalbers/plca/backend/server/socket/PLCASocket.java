@@ -1,11 +1,11 @@
-package de.noahalbers.plca.backend.socket;
+package de.noahalbers.plca.backend.server.socket;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-import de.noahalbers.plca.backend.socket.exception.PLCAConnectionTimeoutException;
+import de.noahalbers.plca.backend.server.socket.exception.PLCAConnectionTimeoutException;
 
 public class PLCASocket {
 

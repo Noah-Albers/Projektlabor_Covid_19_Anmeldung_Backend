@@ -1,4 +1,4 @@
-package de.noahalbers.plca.backend.socket.exception;
+package de.noahalbers.plca.backend.server.socket.exception;
 
 import java.io.IOException;
 

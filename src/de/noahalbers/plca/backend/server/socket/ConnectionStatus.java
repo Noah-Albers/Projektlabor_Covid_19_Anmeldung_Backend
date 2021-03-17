@@ -1,4 +1,4 @@
-package de.noahalbers.plca.backend.socket;
+package de.noahalbers.plca.backend.server.socket;
 
 public enum ConnectionStatus {
 

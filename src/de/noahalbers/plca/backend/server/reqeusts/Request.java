@@ -13,7 +13,7 @@ import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.entitys.AdminEntity;
 
 public class Request {
-
+	
 	// Reference to the main app
 	private PLCA plca = PLCA.getInstance();
 	
@@ -38,32 +38,45 @@ public class Request {
 	}
 	
 	/**
-	 * Reuses or starts a new database connection
-	 * @return
-	 * @throws SQLException if the connection failed to start
-	 */
-	public Connection startDatabaseConnection() throws SQLException {
-		// Checks if no connection is currently open
-		if(this.dbConnection == null)
-			return this.plca.getDatabase().startConnection();
-		return this.dbConnection;
-	}
-	
-	/**
-	 * @return optionally the admin if an admin is requesting
-	 */
-	@Nullable
-	public Optional<AdminEntity> getAdmin() {
-		return Optional.ofNullable(this.admin);
-	}
-	
-	/**
 	 * Sends a response to the remote client
 	 * @param data the data to send
 	 * @throws IOException if anything went wrong with the I/O
 	 */
 	public void sendResponse(JSONObject data) throws IOException{
-		this.doSend.send(data);
+		// Creates the response
+		JSONObject response = new JSONObject() {{
+			// Appends the success status
+			this.accumulate("status", 1);
+			// Appends the data
+			this.accumulate("data", data);
+		}};
+		
+		// Sends the response
+		this.doSend.send(response);
+	}
+	
+	/**
+	 * Sends an error back to the client
+	 * @param code the error code that the client can deal with
+	 * @param infos addition infos regarding the error
+	 * @throws IOException if anything happens with the I/O
+	 */
+	public void sendError(String code,@Nullable JSONObject infos) throws IOException{
+		// Creates the response
+		JSONObject response = new JSONObject() {{
+			// Appends the error status
+			this.accumulate("status", 0);
+			// Appends the error status
+			this.accumulate("errorcode", code);
+			
+			// Checks if additional infos got parsed
+			if(infos != null)
+				// Appends the error infos
+				this.accumulate("data", infos);
+		}};
+		
+		// Sends the response
+		this.doSend.send(response);
 	}
 	
 	/**
@@ -77,6 +90,26 @@ public class Request {
 
 	public JSONObject getMessage() {
 		return this.message;
+	}
+	
+	/**
+	 * @return optionally the admin if an admin is requesting
+	 */
+	@Nullable
+	public Optional<AdminEntity> getAdmin() {
+		return Optional.ofNullable(this.admin);
+	}
+	
+	/**
+	 * Reuses or starts a new database connection
+	 * @return
+	 * @throws SQLException if the connection failed to start
+	 */
+	public Connection startDatabaseConnection() throws SQLException {
+		// Checks if no connection is currently open
+		if(this.dbConnection == null)
+			return this.plca.getDatabase().startConnection();
+		return this.dbConnection;
 	}
 	
 	@FunctionalInterface

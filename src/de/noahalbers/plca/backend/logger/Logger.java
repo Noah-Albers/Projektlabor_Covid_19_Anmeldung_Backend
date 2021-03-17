@@ -38,21 +38,21 @@ public class Logger {
 	}
 	
 	public void debug(Object msg) {
-		this.log(DEBUG, "\t[DEBUG]", msg);
+		this.log(DEBUG, "\t[DEBUG] ", msg);
 	}
 	
 	public void debug_special(Object msg) {
-		this.log(DEBUG_SPECIAL, "[DEBUG++]", msg);
+		this.log(DEBUG_SPECIAL, "[DEBUG++] ", msg);
 	}
 
 	public void info(Object msg) {
-		this.log(INFO, "[INFO]", msg);
+		this.log(INFO, "[INFO] ", msg);
 	}
 	public void warn(Object msg) {
-		this.log(WARNING, "[WARNING]", msg);
+		this.log(WARNING, "[WARNING] ", msg);
 	}
 	public void error(Object msg) {
-		this.log(ERROR, "[ERROR]", msg);
+		this.log(ERROR, "[ERROR] ", msg);
 	}
 	
 }
