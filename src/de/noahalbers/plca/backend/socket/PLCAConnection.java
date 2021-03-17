@@ -22,6 +22,7 @@ import com.mysql.cj.exceptions.RSAException;
 import de.noahalbers.plca.backend.EncryptionManager;
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.entitys.AdminEntity;
+import de.noahalbers.plca.backend.logger.Logger;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
 import de.noahalbers.plca.backend.socket.exception.PLCAAdminNotFoundException;
 import de.noahalbers.plca.backend.socket.exception.PLCAConnectionTimeoutException;
@@ -30,6 +31,9 @@ public class PLCAConnection extends Thread{
 	
 	// Reference to the program
 	private PLCA plca = PLCA.getInstance();
+	
+	// Logger
+	private Logger logger = this.plca.getLogger();
 	
 	// The socket for the connection
 	private PLCASocket socket;
@@ -102,7 +106,7 @@ public class PLCAConnection extends Thread{
 			short clientId = this.socket.readUByte();
 			
 			// TODO: Log
-			System.out.println("ClientId: "+clientId);
+			this.logger.debug("Received clientid: "+clientId);
 			
 			// Gets the remote rsa-public key
 			PublicKey remoteKey = this.getKeyAndPrepare(clientId);
@@ -117,8 +121,6 @@ public class PLCAConnection extends Thread{
 			// Stores the key and iv into the packet
 			System.arraycopy(this.aesKey.getEncoded(), 0, packet, 0, 32);
 			System.arraycopy(this.aesIv.getIV(), 0, packet, 32, 16);
-			
-			System.out.println(Arrays.toString(packet));
 			
 			// Encrypts the packet using the rsa-key
 			Optional<byte[]> optEnc = this.encryptionManager.encryptRSA(packet, remoteKey);
@@ -152,7 +154,6 @@ public class PLCAConnection extends Thread{
 	 */
 	private PublicKey getKeyAndPrepare(short id) throws SQLException,RSAException,PLCAAdminNotFoundException{
 		// Checks if the requester is from the covid-login
-		System.out.println(this.plca.getConfig().get("applogin_pubK"));
 		if(id == 0)
 			return this.encryptionManager.getPublicKeyFromSpec(EncryptionManager.getPublicKeySpecFromJson(new JSONObject(this.plca.getConfig().get("applogin_pubK"))));
 		

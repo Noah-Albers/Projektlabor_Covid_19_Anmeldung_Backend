@@ -11,7 +11,7 @@ public class TestRequest extends RequestHandler{
 
 	@Override
 	public void execute(Request request) throws IOException {
-		System.out.println("Received test-request");
+		this.logger.debug("Received test-request");
 		request.sendResponse(new JSONObject("{\"test\":\"success\"}"));
 	}
 

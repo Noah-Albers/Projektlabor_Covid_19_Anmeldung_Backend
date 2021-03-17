@@ -2,7 +2,13 @@ package de.noahalbers.plca.backend.server.reqeusts;
 
 import java.io.IOException;
 
+import de.noahalbers.plca.backend.PLCA;
+import de.noahalbers.plca.backend.logger.Logger;
+
 public abstract class RequestHandler {
+	
+	// Reference to the logger
+	protected Logger logger = PLCA.getInstance().getLogger();
 	
 	/**
 	 * Executes once a request gets received

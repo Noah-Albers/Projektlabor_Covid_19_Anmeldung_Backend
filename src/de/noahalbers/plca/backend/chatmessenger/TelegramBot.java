@@ -17,7 +17,7 @@ public class TelegramBot extends TelegramLongPollingBot{
 			return;
 		
 		// Logs the message
-		System.out.println("Received telegram-message: "+update.getMessage().getText());
+		this.plca.getLogger().debug("Received telegram-message: "+update.getMessage().getText());
 	}
 
 	@Override

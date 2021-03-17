@@ -9,6 +9,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import de.noahalbers.plca.backend.chatmessenger.TelegramBot;
 import de.noahalbers.plca.backend.database.PLCADatabase;
+import de.noahalbers.plca.backend.logger.Logger;
 import de.noahalbers.plca.backend.server.PLCAServer;
 
 public class PLCA {
@@ -24,6 +25,9 @@ public class PLCA {
 	
 	// Server handler for connection (Covid-login and admins)
 	private PLCAServer server;
+	
+	// Logger
+	private Logger logger = new Logger(Logger.ALL);
 	
 	// Config for the program
 	private Config config = new Config()
@@ -52,7 +56,7 @@ public class PLCA {
 		
 		// Checks if one of them isn't supported
 		if(new EncryptionManager().init().isPresent()) {
-			System.out.println(optError.get()+" is not supported.");
+			this.logger.error(optError.get()+" is not supported.");
 			return;
 		}
 		
@@ -102,6 +106,10 @@ public class PLCA {
 	
 	public PLCAServer getServer() {
 		return this.server;
+	}
+	
+	public Logger getLogger() {
+		return this.logger;
 	}
 	
 	public static PLCA getInstance() {

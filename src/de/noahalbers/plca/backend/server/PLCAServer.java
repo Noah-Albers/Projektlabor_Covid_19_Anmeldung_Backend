@@ -44,7 +44,7 @@ public class PLCAServer extends Thread{
 		// Waits for connections
 		while(!this.isInterrupted()) {
 			try {
-				new PLCAConnection(this.listener.accept(), System.out::println).start();
+				new PLCAConnection(this.listener.accept(), this.plca.getLogger()::info).start();
 			} catch (Exception e) {
 				//TODO: handle better
 				e.printStackTrace();
