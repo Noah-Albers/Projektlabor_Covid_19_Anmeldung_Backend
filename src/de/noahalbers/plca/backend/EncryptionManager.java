@@ -5,6 +5,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -34,6 +35,12 @@ public class EncryptionManager {
 	// Aes-Encryption system
 	private Cipher aesCipher;
 	
+	// SHA-256 hash system
+	private MessageDigest digestSha256;
+	
+	// MD-5 hash system
+	private MessageDigest digestmd5;
+	
 	// Secure random number generator
 	private SecureRandom random = new SecureRandom();
 	
@@ -53,7 +60,15 @@ public class EncryptionManager {
 		// Checks if rsa is supported
 		if((this.rsaFactory = this.getExceptNull(()->KeyFactory.getInstance("RSA"))) == null)
 			return Optional.of("rsa factory");
+
+		// Checks if sha256 is supported
+		if((this.digestSha256 = this.getExceptNull(()->MessageDigest.getInstance("SHA-256"))) == null)
+			return Optional.of("sha256");
 		
+		// Checks if sha256 is supported
+		if((this.digestmd5 = this.getExceptNull(()->MessageDigest.getInstance("MD5"))) == null)
+			return Optional.of("md5");
+			
 		return Optional.empty();
 	}
 	
@@ -125,6 +140,26 @@ public class EncryptionManager {
 		
 		// Generates the secret key
 		return new SecretKeySpec(key, "AES");
+	}
+
+	/**
+	 * Hashes the given bytes using md5
+	 * @param data the raw data
+	 * @return an hashed array with the md5 hash
+	 */
+	public byte[] hashMD5(byte[] data) {
+		this.digestmd5.update(data);
+		return this.digestmd5.digest();
+	}
+	
+	/**
+	 * Hashes the given bytes using sha256
+	 * @param data the raw data
+	 * @return an hashed array with the sha256 hash
+	 */
+	public byte[] hashSHA256(byte[] data) {
+		this.digestSha256.update(data);
+		return this.digestSha256.digest();
 	}
 	
 	/**
