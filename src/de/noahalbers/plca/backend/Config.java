@@ -6,9 +6,12 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public class Config {
 	
@@ -26,8 +29,14 @@ public class Config {
 		// Opens the file
 		BufferedWriter bw = new BufferedWriter(new FileWriter(CONFIG_FILE));
 		
+		// Gets all entrys
+		List<Entry<String, String>> entrys = this.loadedConfig.entrySet().stream().collect(Collectors.toList());
+		
+		// Sorts the entrys
+		Collections.sort(entrys, (a,b)->a.getKey().compareTo(b.getKey()));
+		
 		// Saves all values
-		for(Entry<String, String> entry : this.loadedConfig.entrySet())
+		for(Entry<String, String> entry : entrys)
 			bw.write(entry.getKey()+": "+entry.getValue()+"\n");
 		
 		// Closes the writer
