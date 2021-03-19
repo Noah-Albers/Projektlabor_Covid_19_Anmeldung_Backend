@@ -2,11 +2,15 @@ package de.noahalbers.plca.backend.database.entitys;
 
 import java.security.spec.RSAPublicKeySpec;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import javax.annotation.Nullable;
 
+import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.mysql.cj.exceptions.RSAException;
 
 import de.noahalbers.plca.backend.EncryptionManager;
 import de.noahalbers.plca.backend.database.DBInfo;
@@ -62,7 +66,7 @@ public class AdminEntity {
 	 * Used when grabbing a new instance from the database. Missing values will be
 	 * filled
 	 */
-	public AdminEntity(ResultSet result) throws Exception {
+	public AdminEntity(ResultSet result) throws RSAException, JSONException, SQLException {
 		// Tries to load the public and private key
 		this.publicKey = EncryptionManager.getPublicKeySpecFromJson(new JSONObject(result.getString(DB_RSA_PUBLIC_KEY)));
 	}

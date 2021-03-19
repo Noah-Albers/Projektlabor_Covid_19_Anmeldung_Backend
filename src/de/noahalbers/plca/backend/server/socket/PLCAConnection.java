@@ -71,6 +71,9 @@ public class PLCAConnection extends Thread {
 
 	@Override
 	public void run() {
+		// Request object that shall be used
+		Request request = null;
+		
 		try {
 			// Does the handshake with the remote client to provide a secure connection
 			this.doHandshake();
@@ -102,7 +105,7 @@ public class PLCAConnection extends Thread {
 			}
 			
 			// Creates the request
-			Request r = new Request(
+			request = new Request(
 				pkt.has("data") ? pkt.getJSONObject("data") : new JSONObject(),
 				this::sendPacket,
 				this::receivePacket,
@@ -111,8 +114,8 @@ public class PLCAConnection extends Thread {
 			);
 
 			// Executes the handler
-			handler.execute(r);
-
+			handler.execute(request);
+			
 			// Ends the connection
 			this.killConnection(ConnectionStatus.DISCONNECTED_SUCCESS);
 		} catch (Exception e) {
@@ -120,6 +123,10 @@ public class PLCAConnection extends Thread {
 			// TODO: handle different exceptions
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 			return;
+		} finally {
+			// Deletes the object
+			if(request != null)
+				request.Destruct();
 		}
 	}
 

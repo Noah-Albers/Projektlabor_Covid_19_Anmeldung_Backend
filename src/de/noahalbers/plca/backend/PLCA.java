@@ -7,6 +7,7 @@ import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
+import de.noahalbers.plca.backend.backup.BackgroundTask;
 import de.noahalbers.plca.backend.chatmessenger.TelegramBot;
 import de.noahalbers.plca.backend.database.PLCADatabase;
 import de.noahalbers.plca.backend.logger.Logger;
@@ -40,7 +41,19 @@ public class PLCA {
 			.register("db_databasename", "test")
 			.register("connection_timeout", "5000")
 			.register("applogin_pubK", "")
-			.register("port", "1337");
+			.register("port", "1337")
+			.register("backup_delay", String.valueOf(1000 * 60))
+			.register("email_host", "")
+			.register("email_mail", "")
+			.register("email_port", "")
+			.register("email_password", "")
+			.register("email_subject", "Database-Backup")
+			.register("email_filename", "Backup.sql.enc")
+			.register("email_encryption_key", "")
+			.register("backup_autologout", String.valueOf(1000*60*60))
+			.register("autodelete_time", String.valueOf(1000*60*60*24*7*4))
+			.register("autologout_after_time", "24")
+			;
 	
 	private PLCA() {
 		SINGLETON_INSTANCE = this;
@@ -56,7 +69,7 @@ public class PLCA {
 		
 		// Checks if one of them isn't supported
 		if(new EncryptionManager().init().isPresent()) {
-			this.logger.error(optError.get()+" is not supported.");
+			this.shutdown(optError.get()+" is not supported.");
 			return;
 		}
 		
@@ -65,7 +78,7 @@ public class PLCA {
 			// Loads the config	
 			this.config.loadConfig();
 		} catch (IOException e) {
-			e.printStackTrace();
+			this.shutdown(e);
 			return;
 		}
 		
@@ -78,8 +91,16 @@ public class PLCA {
 			TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
 			api.registerBot(this.messenger = new TelegramBot());
 		} catch (TelegramApiException e) {
-			e.printStackTrace();
+			this.shutdown(e);
 			return;
+		}
+		
+		// Starts the backup task
+		try {
+			BackgroundTask backup = new BackgroundTask();
+			backup.start();
+		} catch (Exception e) {
+			this.shutdown(e);
 		}
 		
 		// TODO: handle exception
@@ -88,8 +109,21 @@ public class PLCA {
 			this.server = new PLCAServer();
 			this.server.start();
 		} catch (IOException e) {
-			e.printStackTrace();
+			this.shutdown(e);
 		}
+	}
+	
+	/**
+	 * Shuts the program down and handles the error
+	 * @param error the ciritical error that caused to program to fail
+	 */
+	private void shutdown(Object error) {
+		System.exit(-1);
+		
+		// TODO: Handle better
+		
+		// Logs the error
+		this.logger.error(error);
 	}
 	
 	public TelegramBot getMessenger() {

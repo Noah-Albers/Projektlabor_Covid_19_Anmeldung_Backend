@@ -112,6 +112,20 @@ public class Request {
 		return this.dbConnection;
 	}
 	
+	/**
+	 * Deletes the object and destructs it
+	 */
+	public void Destruct() {
+		// Checks if the database connection still is open
+		if(this.dbConnection != null) {
+			try {
+				// Closes the db-connection
+				this.dbConnection.close();
+			} catch (SQLException e) {}
+			this.dbConnection=null;
+		}
+	}
+	
 	@FunctionalInterface
 	public interface PacketSender {
 		public void send(JSONObject data) throws IOException;

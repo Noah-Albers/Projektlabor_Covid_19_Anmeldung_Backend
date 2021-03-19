@@ -1,5 +1,6 @@
 package de.noahalbers.plca.backend.database;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.sql.Connection;
@@ -7,9 +8,17 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
+
+import org.json.JSONException;
+
+import com.mysql.cj.exceptions.RSAException;
+import com.smattme.MysqlExportService;
 
 import de.noahalbers.plca.backend.Config;
 import de.noahalbers.plca.backend.PLCA;
@@ -20,7 +29,48 @@ public class PLCADatabase {
 
 	// Reference to the program
 	private PLCA plca = PLCA.getInstance();
+	
+	/**
+	 * Generates a connection string for the database
+	 */
+	public String generateConnectionString() {
+		Config cfg = this.plca.getConfig();
+		
+		return String.format(
+			"jdbc:mysql://%s:%s/%s",
+			cfg.get("db_host"),
+			cfg.get("db_port"),
+			cfg.get("db_databasename")
+		);
+	}
+	
+	/**
+	 * Creates a backup of the current database
+	 * @return a string that can be inserted as list of statements and will recreate the backup of the database
+	 * @throws SQLException if anything went wrong while grabbing the database
+	 */
+	public String requestDatabaseBackup() throws SQLException {
+		// Gets the config
+		Config cfg = this.plca.getConfig();
+		
+		// Generates the properties for the exporter
+		Properties properties = new Properties();
+		properties.setProperty(MysqlExportService.DB_USERNAME, cfg.get("db_user"));
+		properties.setProperty(MysqlExportService.DB_PASSWORD, cfg.get("db_password"));
+		properties.setProperty(MysqlExportService.JDBC_CONNECTION_STRING, this.generateConnectionString());
 
+		// Gets the export service
+		MysqlExportService s = new MysqlExportService(properties);
+		try {
+			// Retrieves the backup
+			s.export();
+		} catch (ClassNotFoundException | IOException e) {
+			throw new SQLException(e);
+		}
+		// Returns the generated backup as a string
+		return s.getGeneratedSql();
+	}
+	
 	/**
 	 * Tries to start a connection to the database
 	 * 
@@ -29,13 +79,53 @@ public class PLCADatabase {
 	 *             if anything went wrong
 	 */
 	public Connection startConnection() throws SQLException {
-		// Gets the config
 		Config cfg = this.plca.getConfig();
-
-		return DriverManager.getConnection(String.format("jdbc:mysql://%s:%s/%s", cfg.get("db_host"),
-				cfg.get("db_port"), cfg.get("db_databasename")), cfg.get("db_user"), cfg.get("db_password"));
+		return DriverManager.getConnection(this.generateConnectionString(),cfg.get("db_user"), cfg.get("db_password"));
 	}
 
+	/**
+	 * Logs out all users that have been logged in to long (Config value)
+	 * @param con the connection
+	 * @throws SQLException if anything went wrong
+	 */
+	public void doAutologoutUsers(Connection con) throws SQLException{
+		// Gets the current timestamp
+		Timestamp current = new Timestamp(System.currentTimeMillis());
+		// Creates the query
+		try(PreparedStatement ps = con.prepareStatement("UPDATE `timespent` SET `stop`=?,`enddisconnect`=1 WHERE `stop` IS NULL AND TIMESTAMPDIFF(hour,start,?) >= ?;")){
+			// Inserts all values
+			ps.setTimestamp(1, current);
+			ps.setTimestamp(2, current);
+			ps.setInt(3, Integer.valueOf(this.plca.getConfig().get("autologout_after_time")));
+			
+			// Executes the statement
+			if(!ps.execute())
+				throw new SQLException("Failed to send query.");
+		}
+	}
+	
+	/**
+	 * Deletes old accounts that have not been used in the specified amount of time (using the config)
+	 * @param con the connection
+	 * @throws SQLException if anything went wrong with the connection
+	 */
+	public void doAutoDeleteAccounts(Connection con) throws SQLException {
+		
+		// Calculates the timestamp before which old accounts should be deleted
+		Timestamp ts = new Timestamp(System.currentTimeMillis() + Long.valueOf(this.plca.getConfig().get("autodelete_time")));
+		// Creates the statement
+		try(Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)){			
+			// Adds the batches to delete
+			stmt.addBatch("CREATE TEMPORARY TABLE IF NOT EXISTS `oldUsers` AS (SELECT `user`.`id` as `id` FROM `timespent` `o` LEFT JOIN `timespent` `b` ON `o`.`userid` = `b`.`userid` AND `o`.`stop` < `b`.`stop` right outer JOIN `user` ON `o`.`userid` = `user`.`id` WHERE(`b`.`stop` IS NULL AND `o`.`stop` IS NOT NULL AND `o`.`stop` AND `o`.`stop` < '"+ts.toString()+"') or `b`.`userid` IS NULL);");
+			stmt.addBatch("DELETE FROM `user` where `autodeleteaccount` and `id` IN (SELECT `id` FROM `oldUsers`) and `createdate` < '"+ts.toString()+"';");
+			stmt.addBatch("DROP TABLE IF EXISTS `oldUsers`;");
+			
+			// Executes the batch
+			stmt.executeBatch();
+		}
+		
+	}
+	
 	/**
 	 * Grabs all users (Simplified profiles) from the database
 	 * 
@@ -46,26 +136,28 @@ public class PLCADatabase {
 	 *             if anything went wrong with the connection
 	 */
 	public SimpleUserEntity[] getSimpleUsersFromDatabase(Connection con) throws SQLException {
-		// Starts the statement
-		PreparedStatement query = con.prepareStatement("SELECT id,firstname,lastname FROM user;");
-
-		// Executes the query and gets the result
-		ResultSet res = query.executeQuery();
-
-		// Holds all found users
-		List<SimpleUserEntity> users = new ArrayList<>();
-
-		// Grabs all users
-		while (res.next()) {
-			// Creates the user
-			SimpleUserEntity sue = new SimpleUserEntity();
-			// Imports all parameters
-			this.importValuesIntoObject(sue, res);
-			// Appends the object to the list
-			users.add(sue);
+		try(
+			// Starts the statement
+			PreparedStatement query = con.prepareStatement("SELECT id,firstname,lastname FROM user;");
+			// Executes the query and gets the result
+			ResultSet res = query.executeQuery()){	
+			
+			// Holds all found users
+			List<SimpleUserEntity> users = new ArrayList<>();
+			
+			// Grabs all users
+			while (res.next()) {
+				// Creates the user
+				SimpleUserEntity sue = new SimpleUserEntity();
+				// Imports all parameters
+				this.importValuesIntoObject(sue, res);
+				// Appends the object to the list
+				users.add(sue);
+			}
+			
+			return (SimpleUserEntity[]) users.toArray(new SimpleUserEntity[users.size()]);
 		}
 
-		return (SimpleUserEntity[]) users.toArray(new SimpleUserEntity[users.size()]);
 	}
 
 	/**
@@ -81,27 +173,28 @@ public class PLCADatabase {
 	 */
 	public Optional<AdminEntity> getAdminById(int id, Connection con) throws SQLException {
 		// Starts the statement
-		PreparedStatement query = con.prepareStatement("SELECT * FROM admin WHERE id=?;");
-		query.setInt(1, id);
-
-		// Executes the query and gets the result
-		ResultSet res = query.executeQuery();
-
-		// Checks if no result got found
-		if (!res.next())
-			return Optional.empty();
-
-		try {
-			// Creates an admin entity
-			AdminEntity adm = new AdminEntity(res);
-
-			// Imports all values
-			this.importValuesIntoObject(adm, res);
-
-			return Optional.of(adm);
-		} catch (Exception exc) {
-			throw new SQLException(exc);
+		try(PreparedStatement query = con.prepareStatement("SELECT * FROM admin WHERE id=?;")){
+			// Appends the parameters
+			query.setInt(1, id);
+			
+			// Executes the query and gets the result
+			try(ResultSet res = query.executeQuery()){				
+				// Checks if no result got found
+				if (!res.next())
+					return Optional.empty();
+				
+				// Creates an admin entity
+				AdminEntity adm = new AdminEntity(res);
+				
+				// Imports all values
+				this.importValuesIntoObject(adm, res);
+				
+				return Optional.of(adm);
+			}
+		} catch(JSONException | RSAException e) {
+			throw new SQLException(e);
 		}
+
 	}
 
 	/**

@@ -32,5 +32,15 @@
 	    <artifactId>json</artifactId>
 	    <version>20210307</version>
 	</dependency>
+	<dependency>
+	    <groupId>javax.mail</groupId>
+	    <artifactId>mail</artifactId>
+	    <version>1.5.0-b01</version>
+	</dependency>
+	<dependency>
+    	<groupId>com.smattme</groupId>
+	    <artifactId>mysql-backup4j</artifactId>
+	    <version>1.0.0</version>
+	</dependency>
   </dependencies>
 </project>
