@@ -33,8 +33,11 @@ public class Logger {
 		if((this.logLevel & level) == 0)
 			return;
 		
+		// Generates the final message
+		String finalMessage = prefix+msg.toString();
+		
 		// Outputs the info
-		System.out.println(prefix+msg.toString());
+		System.out.println(finalMessage);
 	}
 	
 	public void debug(Object msg) {

@@ -1,6 +1,7 @@
 package de.noahalbers.plca.backend.server.reqeusts;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.PLCADatabase;
@@ -13,7 +14,7 @@ public abstract class RequestHandler {
 
 	// Reference to the database
 	protected PLCADatabase database = PLCA.getInstance().getDatabase();
-	
+
 	/**
 	 * @return an int that indicates the required permissions to access the request
 	 *         handler. This int is encoded using simple binary or. Used
@@ -32,5 +33,54 @@ public abstract class RequestHandler {
 	 *             if anything went wrong with the I/O
 	 */
 	public abstract void execute(Request request) throws IOException;
+
+	/**
+	 * Sends a database error and logs it
+	 * 
+	 * @param req
+	 *            the request
+	 * @throws IOException
+	 *             forward
+	 */
+	public void sendErrorDatabase(Request req, SQLException e) throws IOException {
+		// Log
+		this.logger.debug(this + "Failed to open a database connection: " + e);
+		// Sends back an connection error
+		req.sendError("database");
+	}
+
+	/**
+	 * Sends an unknown exception error
+	 * 
+	 * @param req
+	 *            the request
+	 * @param e
+	 *            the exception (Used to log it)
+	 * @throws IOException
+	 *             forward
+	 */
+	public void sendErrorUnknwonException(Request req, Exception e) throws IOException {
+		// Log
+		this.logger.warn(this + "Unknown exception occured: " + e);
+		// Sends back an error
+		req.sendError("unknown");
+	}
+
+	/**
+	 * Sends a missing field error for the given field
+	 * 
+	 * @param req
+	 *            the request
+	 * @param name
+	 *            the name of the field
+	 * @throws IOException
+	 *             forward
+	 */
+	public void sendErrorMissingField(Request req, String name) throws IOException {
+		// Log
+		this.logger.debug(this + "Failed to send field: " + name);
+		// Sends back the error
+		req.sendError(name);
+	}
 
 }

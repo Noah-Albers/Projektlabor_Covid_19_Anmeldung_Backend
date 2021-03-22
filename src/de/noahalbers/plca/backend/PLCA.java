@@ -51,7 +51,7 @@ public class PLCA {
 			.register("email_filename", "Backup.sql.enc")
 			.register("email_encryption_key", "")
 			.register("backup_autologout", String.valueOf(1000*60*60))
-			.register("autodelete_time", String.valueOf(1000*60*60*24*7*4))
+			.register("autodelete_time", String.valueOf(1000l*60l*60l*24l*7l*4l))
 			.register("autologout_after_time", "24")
 			;
 	

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import javax.annotation.Nullable;
 
@@ -20,11 +21,15 @@ public class PLCAServer extends Thread{
 	// Server listener
 	private ServerSocket listener;
 	
+	// Generator for the connection id
+	private Random random = new Random();
+	
 	// Registers all request-handlers
-	private Map<Integer/*Id*/,RequestHandler> handlers = new HashMap<Integer/*Id*/,RequestHandler>();
-	{
-		handlers.put(0, new GrabUsersRequest());
-	}
+	@SuppressWarnings("serial")
+	private Map<Integer/*Id*/,RequestHandler> handlers = new HashMap<Integer/*Id*/,RequestHandler>()
+	{{
+		put(0,new GrabUsersRequest());
+	}};
 	
 	public PLCAServer() throws IOException {
 		// TODO: Handle exceptions
@@ -44,9 +49,13 @@ public class PLCAServer extends Thread{
 		// Waits for connections
 		while(!this.isInterrupted()) {
 			try {
-				new PLCAConnection(this.listener.accept(), this.plca.getLogger()::info).start();
+				// Generates a random connection id
+				long cid = this.random.nextLong();
+				
+				// Creates the connection
+				new PLCAConnection(cid,this.listener.accept(), this.plca.getLogger()::info).start();
 			} catch (Exception e) {
-				//TODO: handle better
+				//TODO: handle better (Remove config long test stuff)
 				e.printStackTrace();
 			}
 		}

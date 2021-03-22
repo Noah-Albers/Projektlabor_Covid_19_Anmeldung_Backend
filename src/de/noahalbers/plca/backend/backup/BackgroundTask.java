@@ -139,6 +139,7 @@ public class BackgroundTask extends Thread {
 	private void handleAutologout() {
 		// TODO: Handle better
 		try(Connection con = this.database.startConnection()){
+			this.logger.info("Starting autologout");
 			// Automatically logs out users
 			this.database.doAutologoutUsers(con);
 		} catch (SQLException e) {

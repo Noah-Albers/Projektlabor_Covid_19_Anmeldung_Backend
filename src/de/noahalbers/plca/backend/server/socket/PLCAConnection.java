@@ -46,6 +46,9 @@ public class PLCAConnection extends Thread {
 	// Manager for the encryption
 	private EncryptionManager encryptionManager = new EncryptionManager();
 
+	// Id for this connection
+	private long connectionID;
+	
 	// A connection that has been opend to the database to extract information. May
 	// be null depending on the time
 	@Nullable
@@ -63,7 +66,8 @@ public class PLCAConnection extends Thread {
 	@Nullable
 	private IvParameterSpec aesIv;
 
-	public PLCAConnection(Socket socket, Consumer<ConnectionStatus> onStatusChange) throws NumberFormatException {
+	public PLCAConnection(long connectionID,Socket socket, Consumer<ConnectionStatus> onStatusChange) throws NumberFormatException {
+		this.connectionID=connectionID;
 		this.onStatusChange = onStatusChange;
 		this.socket = new PLCASocket(socket, Long.parseLong(this.plca.getConfig().get("connection_timeout")));
 		this.encryptionManager.init();
@@ -73,59 +77,74 @@ public class PLCAConnection extends Thread {
 	public void run() {
 		// Request object that shall be used
 		Request request = null;
-		
+
+		// Performs the secure handshake with the client
+		if (!this.doHandshake())
+			return;
+
+		// Now we have a secure connection an can start to send data
+
 		try {
-			// Does the handshake with the remote client to provide a secure connection
-			this.doHandshake();
-
-			// Now we have a secure connection an can start to send data
-
 			// Waits for the request-packet
 			JSONObject pkt = this.receivePacket();
 
-			// Gets the endpoint id
-			int endptId = pkt.getInt("endpoint");
+			// Holds the specified handler
+			RequestHandler handler;
 
-			// Gets the reqeust-handler
-			RequestHandler handler = this.plca.getServer().getHandlerById(endptId);
+			try {
+				// Gets the endpoint id
+				int endptId = pkt.getInt("endpoint");
 
-			// Checks if the handler exists
-			if (handler == null) {
-				// TODO: Send back error
-				throw new IOException("No handler for id: " + endptId);
+				// Gets the reqeust-handler
+				handler = this.plca.getServer().getHandlerById(endptId);
+
+				// Checks if the handler exists
+				if (handler == null)
+					throw new JSONException("Invalid handler got specified.");
+
+			} catch (JSONException e) {
+				this.sendErrorAndClose("handler", ConnectionStatus.DISCONNECTED_NO_HANDLER);
+				return;
 			}
-			
+
 			// Gets the users permissions
-			int perm = this.connectedAdmin == null ? Permissions.DEFAULT_LOGIN : this.connectedAdmin.getPermissions();
-			
+			int perm = this.connectedAdmin == null ? Permissions.DEFAULT_LOGIN : this.connectedAdmin.permissions;
+
 			// Checks if the user does not have the permissions to access the app
-			if((perm & handler.getRequiredPermissions()) == 0) {
-				// TODO: Send back error
-				throw new IOException("Requesting user has not all permissions to access");
+			if ((perm & handler.getRequiredPermissions()) == 0) {
+				this.sendErrorAndClose("auth", ConnectionStatus.DISCONNECTED_PERMISSION);
+				return;
 			}
-			
+
+			// The data for the request
+			JSONObject requestData;
+			try {
+				requestData = pkt.getJSONObject("data");
+			} catch (JSONException e) {
+				requestData = new JSONObject();
+			}
+
 			// Creates the request
-			request = new Request(
-				pkt.has("data") ? pkt.getJSONObject("data") : new JSONObject(),
-				this::sendPacket,
-				this::receivePacket,
-				this.dbconnection,
-				this.connectedAdmin
-			);
+			request = new Request(this.connectionID, requestData, this::sendPacket, this::receivePacket, this.dbconnection,
+					this.connectedAdmin);
 
 			// Executes the handler
 			handler.execute(request);
+
+			// Log
+			this.logger.debug(request+" got completed successfully. Disconnecting...");
 			
 			// Ends the connection
 			this.killConnection(ConnectionStatus.DISCONNECTED_SUCCESS);
-		} catch (Exception e) {
-			e.printStackTrace();
-			// TODO: handle different exceptions
-			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
-			return;
+		} catch (IOException e) {
+			// Log
+			this.logger.debug(this.connectionID+" got disconnected (I/O Error): "+e.toString());
+			
+			// Kills the connection
+			this.killConnection(ConnectionStatus.DISCONNECTED_IO);
 		} finally {
 			// Deletes the object
-			if(request != null)
+			if (request != null)
 				request.Destruct();
 		}
 	}
@@ -133,22 +152,16 @@ public class PLCAConnection extends Thread {
 	/**
 	 * Establishes a secure connection with the remote client
 	 * 
-	 * @throws IOException
-	 *             if anything happens with the I/O
-	 * @throws RSAException
-	 *             if there is an exception with the encryption
-	 * @throws SQLException
-	 *             if there is an exception with the sql-server
-	 * @throws PLCAAdminNotFoundException
-	 *             if the admin could not be found
+	 * @return if the handshake was successful. If not the connection got killed
+	 *         automatically.
 	 */
-	private void doHandshake() throws IOException, RSAException, SQLException, PLCAAdminNotFoundException {
+	private boolean doHandshake() {
 		try {
 			// Gets the client id (0 is the covid-login)
 			short clientId = this.socket.readUByte();
 
-			// Logs the client id
-			this.logger.debug("Received clientid: " + clientId);
+			// Logs
+			this.logger.debug(this.connectionID + " Received clientid " + clientId);
 
 			// Gets the remote rsa-public key
 			PublicKey remoteKey = this.getKeyAndPrepare(clientId);
@@ -168,19 +181,33 @@ public class PLCAConnection extends Thread {
 			Optional<byte[]> optEnc = this.encryptionManager.encryptRSA(packet, remoteKey);
 
 			// Checks if anything went wrong with the encryption
-			if (!optEnc.isPresent()) {
-				this.logger.error("Error while encrypting the aes-bytes");
+			if (!optEnc.isPresent())
 				throw new IOException("Error while encrypting with the aes-bytes.");
-			}
 
 			// Sends the encrypted aes-key and aes-iv
 			this.socket.write(optEnc.get());
 			// Updates the socket
 			this.socket.flush();
-		} catch (IOException | RSAException | SQLException | PLCAAdminNotFoundException e) {
-			e.printStackTrace();
+
+			// Log
+			this.logger.debug(
+					"Handshake with Client(clientid." + clientId + ", connectionid." + this.connectionID + ") was successfull");
+
+			return true;
+		} catch (IOException | PLCAAdminNotFoundException e) {
+			// Log
+			this.logger.debug(this.connectionID + e.toString());
+			// Kills the connection with an auth error
+			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
+		} catch (RSAException | SQLException e) {
+			// Log
+			this.logger.warn(this.connectionID + e.toString());
+			// Kills the connection with an auth error
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 		}
+
+		// Handshake failed for some reason
+		return false;
 	}
 
 	/**
@@ -222,7 +249,32 @@ public class PLCAConnection extends Thread {
 		this.connectedAdmin = adm.get();
 
 		// Tries to generate the key
-		return this.encryptionManager.getPublicKeyFromSpec(adm.get().getPublicKeySpec());
+		return this.encryptionManager
+				.getPublicKeyFromSpec(EncryptionManager.getPublicKeySpecFromJson(new JSONObject(adm.get().publicKey)));
+	}
+
+	/**
+	 * Sends a packet with an except tag (Indicates an error in the pre-processing)
+	 * 
+	 * @param status the status that should be used to send the connection
+	 * @param error
+	 *            the error string
+	 * @throws IOException
+	 *             if anything went wrong
+	 */
+	private void sendErrorAndClose(String error, ConnectionStatus status) throws IOException {
+		// Log
+		this.logger.debug(this.connectionID + " failed in pre-processing with: " + error + " (" + status + ")");
+
+		// Sends an packet with an except-tag (Error
+		this.sendPacket(new JSONObject() {
+			{
+				put("except", error);
+			}
+		});
+
+		// Kills the connection
+		this.killConnection(status);
 	}
 
 	/**
@@ -291,6 +343,11 @@ public class PLCAConnection extends Thread {
 				throw new IOException("Failed to encrypt message.");
 
 			byte[] pkt = optEnc.get();
+
+			// Checks if an error occured with the amount of bytes that need to be send
+			if (pkt.length > Math.pow(2, 16))
+				this.logger.error("Connection needs to send a message with " + pkt.length
+						+ " bytes, but can only send a packet with " + Math.pow(2, 16) + " bytes!");
 
 			// Sends the length for the response
 			this.socket.write((byte) pkt.length);

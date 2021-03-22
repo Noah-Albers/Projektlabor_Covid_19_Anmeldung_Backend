@@ -1,133 +1,66 @@
 package de.noahalbers.plca.backend.database.entitys;
 
-import java.security.spec.RSAPublicKeySpec;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.lang.reflect.Field;
 import java.sql.Timestamp;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import de.noahalbers.plca.backend.database.EntityInfo;
 
-import com.mysql.cj.exceptions.RSAException;
+public class AdminEntity extends Entity{
 
-import de.noahalbers.plca.backend.EncryptionManager;
-import de.noahalbers.plca.backend.database.DBInfo;
+	public static final String
+	ID = "id",
+	NAME = "name",
+	AUTH_CODE = "authcode",
+	AUTH_CODE_EXPIRE = "authcodetimeout",
+	IS_FROZEN = "isfrozen",
+	TELEGRAM_CHAT_ID = "telegramchatid",
+	RSA_KEY = "clientrsapublic",
+	PERMISSIONS = "permissions";
 
-public class AdminEntity {
-
+	// Holds all entrys
+	private static Map<String, Field> DB_ENTRYS = getEntrys(AdminEntity.class, true);
+	private static Map<String, Field> JSON_ENTRYS = getEntrys(AdminEntity.class, false);
+	
+	// Holds a list with all database entrys. Can be used to load all values from a class
+	public static final String[] DB_ENTRY_LIST = DB_ENTRYS.keySet().toArray(new String[DB_ENTRYS.size()]);
+	
+	public AdminEntity() {}
+	
 	// Id to identify the admin
-	@DBInfo("id")
-	private int id;
-
+	@EntityInfo(ID)
+	public Integer id;
+	
 	// The name of the admin (Just in use for persons that view him)
-	@DBInfo("name")
-	private String name;
-
+	@EntityInfo(NAME)
+	public String name;
+	
 	// Code that is used to identify if a request is valid (Weak 2fa)
-	@Nullable
-	@DBInfo("authcode")
-	private long authCode;
-
+	@EntityInfo(AUTH_CODE)
+	@Nullable public Long authCode;
+	
 	// At what time the autocode expires
-	@DBInfo("authcodetimeout")
-	private Timestamp authCodeExpire;
-
+	@EntityInfo(AUTH_CODE_EXPIRE)
+	@Nullable public Timestamp authCodeExpire;
 	// If the account got frozen by an emergency message
-	@DBInfo("isfrozen")
-	private boolean isFrozen;
-
+	@EntityInfo(IS_FROZEN)
+	public Boolean isFrozen;
 	// What id the used has on telegram (Used to provide the weak 2fa auth)
-	@DBInfo("telegramchatid")
-	private long telegramChatId;
+	@EntityInfo(TELEGRAM_CHAT_ID)
+	public Long telegramChatId;
 
 	// The public key for the communication from the admin's client
-	private RSAPublicKeySpec publicKey;
-	private static final String DB_RSA_PUBLIC_KEY = "clientrsapublic";
+	@EntityInfo(RSA_KEY)
+	public String publicKey;
 
 	// The permissions that the account has
-	@DBInfo("permissions")
-	private int permissions;
+	@EntityInfo(PERMISSIONS)
+	public Integer permissions;
 
-	public AdminEntity(int id, String name, int authCode, Timestamp authCodeExpire, boolean isFrozen,
-			long telegramChatId, RSAPublicKeySpec publicKey, int permissions) {
-		this.id = id;
-		this.name = name;
-		this.authCode = authCode;
-		this.authCodeExpire = authCodeExpire;
-		this.isFrozen = isFrozen;
-		this.telegramChatId = telegramChatId;
-		this.publicKey = publicKey;
-		this.permissions = permissions;
-	}
-
-	/*
-	 * Used when grabbing a new instance from the database. Missing values will be
-	 * filled
-	 */
-	public AdminEntity(ResultSet result) throws RSAException, JSONException, SQLException {
-		// Tries to load the public and private key
-		this.publicKey = EncryptionManager.getPublicKeySpecFromJson(new JSONObject(result.getString(DB_RSA_PUBLIC_KEY)));
-	}
-
-	public String getName() {
-		return this.name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public long getAuthCode() {
-		return this.authCode;
-	}
-
-	public void setAuthCode(long authCode) {
-		this.authCode = authCode;
-	}
-
-	public Timestamp getAuthCodeExpire() {
-		return authCodeExpire;
-	}
-
-	public void setAuthCodeExpire(Timestamp authCodeExpire) {
-		this.authCodeExpire = authCodeExpire;
-	}
-
-	public boolean isFrozen() {
-		return this.isFrozen;
-	}
-
-	public void setFrozen(boolean isFrozen) {
-		this.isFrozen = isFrozen;
-	}
-
-	public long getTelegramChatId() {
-		return this.telegramChatId;
-	}
-
-	public void setTelegramChatId(long telegramChatId) {
-		this.telegramChatId = telegramChatId;
-	}
-
-	public RSAPublicKeySpec getPublicKeySpec() {
-		return this.publicKey;
-	}
-
-	public void setPublicKeySpec(RSAPublicKeySpec publicKey) {
-		this.publicKey = publicKey;
-	}
-
-	public int getId() {
-		return this.id;
-	}
-
-	public int getPermissions() {
-		return this.permissions;
-	}
-
-	public void setPermissions(int permissions) {
-		this.permissions = permissions;
+	@Override
+	protected Map<String, Field> entrys(boolean databaseEntrys) {
+		return databaseEntrys?DB_ENTRYS:JSON_ENTRYS;
 	}
 }
