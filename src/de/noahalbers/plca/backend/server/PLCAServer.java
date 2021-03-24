@@ -10,7 +10,11 @@ import javax.annotation.Nullable;
 
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.GetStatusRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.GrabUsersRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.LoginRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.LogoutRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.RegisterUserRequest;
 import de.noahalbers.plca.backend.server.socket.PLCAConnection;
 
 public class PLCAServer extends Thread{
@@ -29,6 +33,10 @@ public class PLCAServer extends Thread{
 	private Map<Integer/*Id*/,RequestHandler> handlers = new HashMap<Integer/*Id*/,RequestHandler>()
 	{{
 		put(0,new GrabUsersRequest());
+		put(1,new GetStatusRequest());
+		put(2,new LoginRequest());
+		put(3,new LogoutRequest());
+		put(4,new RegisterUserRequest());
 	}};
 	
 	public PLCAServer() throws IOException {
