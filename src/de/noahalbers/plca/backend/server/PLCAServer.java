@@ -12,6 +12,7 @@ import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.GetStatusRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.GrabUsersRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.LoginRFIDRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.LoginRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.LogoutRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.RegisterUserRequest;
@@ -37,6 +38,7 @@ public class PLCAServer extends Thread{
 		put(2,new LoginRequest());
 		put(3,new LogoutRequest());
 		put(4,new RegisterUserRequest());
+		put(5,new LoginRFIDRequest());
 	}};
 	
 	public PLCAServer() throws IOException {

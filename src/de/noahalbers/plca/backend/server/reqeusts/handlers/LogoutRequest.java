@@ -71,8 +71,9 @@ public class LogoutRequest extends RequestHandler{
 			// Gets the timespent entity
 			TimespentEntity ent = optEnt.get();
 			
-			// Updates the time
+			// Updates the values
 			ent.stopTime = new Timestamp(System.currentTimeMillis());
+			ent.gotDisconnected=false;
 			
 			// Updates the timespent entity on the database
 			this.database.updateTimespent(request.startDatabaseConnection(), ent);
