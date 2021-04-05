@@ -9,12 +9,16 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.json.JSONException;
 
@@ -109,7 +113,7 @@ public class PLCADatabase {
 			return ps.executeQuery().next();
 		}
 	}
-	
+
 	/**
 	 * Updates a given timespent on the database
 	 * 
@@ -125,13 +129,13 @@ public class PLCADatabase {
 	 */
 	public void updateTimespent(Connection con, TimespentEntity ts) throws SQLException, EntitySaveException {
 		// Prepares the query
-		try (PreparedStatement ps = con
-				.prepareStatement(this.getUpdateQuery("timespent",TimespentEntity.ID, TimespentEntity.DB_ENTRY_LIST))) {
+		try (PreparedStatement ps = con.prepareStatement(
+				this.getUpdateQuery("timespent", TimespentEntity.ID, TimespentEntity.DB_ENTRY_LIST))) {
 			// Inserts the values
 			ts.save(ps, TimespentEntity.DB_ENTRY_LIST);
 			// Inserts the primary value
-			ps.setInt(TimespentEntity.DB_ENTRY_LIST.length+1, ts.id);
-			
+			ps.setInt(TimespentEntity.DB_ENTRY_LIST.length + 1, ts.id);
+
 			// Executes the statement
 			ps.execute();
 		}
@@ -178,7 +182,7 @@ public class PLCADatabase {
 	}
 
 	/**
-	 * Tries to load the last open timespent entity (that has not been loged out)
+	 * Tries to load the last open timespent entity (that has not been logged out)
 	 * 
 	 * @param con
 	 *            the connection
@@ -392,6 +396,47 @@ public class PLCADatabase {
 	}
 
 	/**
+	 * Searches a user and if any open existing timespent is available that to. The
+	 * search depends on the user's rfid that gets passed.
+	 * 
+	 * @param rfid
+	 *            - the rfid of the user to search for
+	 * @return if the user is not found, an empty entry with (null;null); otherwise
+	 *         if the user is found but no corresponding timespententity that the
+	 *         user and an empty value on the tuple (user;null); if both are found,
+	 *         both (user;timespent)
+	 */
+	public Entry<SimpleUserEntity, TimespentEntity> getUserByRFID(String rfid, Connection con) throws SQLException {
+		
+		// The user that shall be found
+		SimpleUserEntity user = new SimpleUserEntity();
+		
+		// Prepares the select query for the user
+		try (PreparedStatement ps = con.prepareStatement(
+				this.getSelectQuery("user", UserEntity.RFID + "=?", SimpleUserEntity.DB_ENTRY_LIST))) {
+			// Inserts the values
+			ps.setString(1, rfid);
+			// Executes the query
+			ResultSet res = ps.executeQuery();
+			
+			// Checks if no user got found
+			if(!res.next())
+				return new AbstractMap.SimpleEntry<>(null,null);
+			
+			// Tries to parse the user
+			user.load(res, SimpleUserEntity.DB_ENTRY_LIST);
+		} catch (EntityLoadException e) {
+			throw new SQLException(e);
+		}
+		
+		// Loads the last open timespent of that user
+		Optional<TimespentEntity> ts = this.getLastOpenTimespent(con, user.id);
+		
+		// Returns the entry for the user and optionally the timespent
+		return new AbstractMap.SimpleEntry<>(user,ts.isPresent() ? ts.get() : null);
+	}
+
+	/**
 	 * Generates a string that can be used as an update query for a prepared
 	 * statement. Leaves questionmark's for all given entry's to fill by the
 	 * prepared statement.
@@ -405,8 +450,27 @@ public class PLCADatabase {
 	private String getUpdateQuery(String table, String primaryAttribute, String... entrys) {
 		// Creates the query to update an entity
 		return String.format("UPDATE `" + table + "` SET %s WHERE %s=?",
-				Arrays.stream(entrys).map(i -> '`' + i + "`=?").collect(Collectors.joining(",")),
-				primaryAttribute);
+				Arrays.stream(entrys).map(i -> '`' + i + "`=?").collect(Collectors.joining(",")), primaryAttribute);
+	}
+
+	/**
+	 * Generates a string that can be used as a select query for a prepared
+	 * statement.
+	 * 
+	 * @param table
+	 *            the table that should be used
+	 * @param conditions
+	 *            {@link Nullable} conditions that are applied behind the where
+	 *            clause if given
+	 * @param selectEntrys
+	 *            the entry's that are expected to be returned by the select-query
+	 * @return the query as a string
+	 */
+	private String getSelectQuery(String table, @Nullable String conditions, String... selectEntrys) {
+		// Creates the query to select a number of entitys
+		return String.format("SELECT %s FROM `%s` %s",
+				Arrays.stream(selectEntrys).map(i -> '`' + i + "`").collect(Collectors.joining(",")), table,
+				conditions == null ? "" : "WHERE " + conditions);
 	}
 
 	/**
@@ -427,19 +491,23 @@ public class PLCADatabase {
 	}
 
 	/**
-	 * Takes an duplicated exception and returns the exact name of the field or combined field that is duplicated.
-	 * @param exception - the {@link SQLException} that got thrown because of a duplicated value
+	 * Takes an duplicated exception and returns the exact name of the field or
+	 * combined field that is duplicated.
+	 * 
+	 * @param exception
+	 *            - the {@link SQLException} that got thrown because of a duplicated
+	 *            value
 	 * @return the name of the field or combined field that is duplicated
 	 */
 	public static String getDuplicatedEntry(SQLIntegrityConstraintViolationException exception) {
-		
+
 		// Shorts the message
 		String msg = exception.getMessage();
-		
+
 		// Gets the index
-		int index = msg.lastIndexOf("'",msg.lastIndexOf("'")-1);
-		
+		int index = msg.lastIndexOf("'", msg.lastIndexOf("'") - 1);
+
 		// Returns the substring
-		return msg.substring(index+1,msg.length()-1);
+		return msg.substring(index + 1, msg.length() - 1);
 	}
 }
