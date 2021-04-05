@@ -22,7 +22,7 @@ public class LoginRequest extends RequestHandler{
 	 * 		database: Backend failed to establish a valid database connection
 	 * 		user: There is no user with the given id
 	 * 		unauthorized: this state is currently not authorized for the user as he is still logged in (Log out first)
-	 * 		unknown: an unknown error occurre. This should not happen. Please try again.	
+	 * 		unknown: an unknown error occurred. This should not happen. Please try again.	
 	 * 
 	 * 	Success: Empty (User got logged in successfully)
 	 * 	
