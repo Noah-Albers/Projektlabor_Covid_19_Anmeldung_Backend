@@ -4,7 +4,7 @@ public class Logger {
 
 	// All possible log levels
 	// Shall be concatenated using | to log both levels
-	public static int
+	public static final int
 	NONE = 0,				// Nothing will be logged
 	DEBUG = 0b1,			// General debug messages shall be logged
 	DEBUG_SPECIAL = 0b10,	// Debug message for the current code that gets debugged, will be logged

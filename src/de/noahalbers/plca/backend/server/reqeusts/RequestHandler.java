@@ -44,7 +44,7 @@ public abstract class RequestHandler {
 	 */
 	public void sendErrorDatabase(Request req, SQLException e) throws IOException {
 		// Log
-		this.logger.debug(this + "Failed to open a database connection: " + e);
+		this.logger.debug(req + "Failed to open a database connection: " + e);
 		// Sends back an connection error
 		req.sendError("database");
 	}
@@ -59,9 +59,9 @@ public abstract class RequestHandler {
 	 * @throws IOException
 	 *             forward
 	 */
-	public void sendErrorUnknwonException(Request req, Exception e) throws IOException {
+	public void sendErrorUnknownException(Request req, Exception e) throws IOException {
 		// Log
-		this.logger.warn(this + "Unknown exception occured: " + e);
+		this.logger.warn(req + "Unknown exception occured: " + e);
 		// Sends back an error
 		req.sendError("unknown");
 	}
@@ -78,9 +78,8 @@ public abstract class RequestHandler {
 	 */
 	public void sendErrorMissingField(Request req, String name) throws IOException {
 		// Log
-		this.logger.debug(this + "Failed to send field: " + name);
+		this.logger.debug(req + "Failed to send field: " + name);
 		// Sends back the error
 		req.sendError(name);
 	}
-
 }

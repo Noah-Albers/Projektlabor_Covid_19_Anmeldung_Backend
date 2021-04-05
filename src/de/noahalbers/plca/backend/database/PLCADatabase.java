@@ -9,7 +9,6 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -110,7 +109,7 @@ public class PLCADatabase {
 			return ps.executeQuery().next();
 		}
 	}
-
+	
 	/**
 	 * Updates a given timespent on the database
 	 * 
@@ -127,9 +126,12 @@ public class PLCADatabase {
 	public void updateTimespent(Connection con, TimespentEntity ts) throws SQLException, EntitySaveException {
 		// Prepares the query
 		try (PreparedStatement ps = con
-				.prepareStatement(this.getUpdateQuery("timespent", TimespentEntity.DB_ENTRY_LIST))) {
+				.prepareStatement(this.getUpdateQuery("timespent",TimespentEntity.ID, TimespentEntity.DB_ENTRY_LIST))) {
 			// Inserts the values
 			ts.save(ps, TimespentEntity.DB_ENTRY_LIST);
+			// Inserts the primary value
+			ps.setInt(TimespentEntity.DB_ENTRY_LIST.length+1, ts.id);
+			
 			// Executes the statement
 			ps.execute();
 		}
@@ -245,6 +247,7 @@ public class PLCADatabase {
 
 			// Inserts all values
 			user.save(ps, UserEntity.DB_ENTRY_LIST);
+			System.out.println(ps);
 			// Creates the user
 			ps.executeUpdate();
 
@@ -255,10 +258,7 @@ public class PLCADatabase {
 			// Appends the id to the admin
 			user.id = rs.getInt(1);
 		} catch (SQLIntegrityConstraintViolationException e) {
-			// The name is duplicated
-			throw new DuplicatedEntryException(
-					new SimpleEntry<String, Object>(SimpleUserEntity.FIRSTNAME, user.firstname),
-					new SimpleEntry<String, Object>(SimpleUserEntity.LASTNAME, user.lastname));
+			throw new DuplicatedEntryException(e);
 		}
 
 	}
@@ -402,10 +402,11 @@ public class PLCADatabase {
 	 *            the entry's that are expected to be filled.
 	 * @return the query as a string
 	 */
-	private String getUpdateQuery(String table, String... entrys) {
+	private String getUpdateQuery(String table, String primaryAttribute, String... entrys) {
 		// Creates the query to update an entity
-		return String.format("UPDATE `" + table + "` set %s",
-				Arrays.stream(entrys).map(i -> '`' + i + "`=?").collect(Collectors.joining(",")));
+		return String.format("UPDATE `" + table + "` SET %s WHERE %s=?",
+				Arrays.stream(entrys).map(i -> '`' + i + "`=?").collect(Collectors.joining(",")),
+				primaryAttribute);
 	}
 
 	/**
@@ -423,5 +424,22 @@ public class PLCADatabase {
 		// Creates the query to create an entity
 		return String.format("INSERT INTO `" + table + "` (%s) VALUES (%s)", String.join(",", entrys),
 				String.join(",", Arrays.stream(entrys).map(i -> "?").collect(Collectors.joining(","))));
+	}
+
+	/**
+	 * Takes an duplicated exception and returns the exact name of the field or combined field that is duplicated.
+	 * @param exception - the {@link SQLException} that got thrown because of a duplicated value
+	 * @return the name of the field or combined field that is duplicated
+	 */
+	public static String getDuplicatedEntry(SQLIntegrityConstraintViolationException exception) {
+		
+		// Shorts the message
+		String msg = exception.getMessage();
+		
+		// Gets the index
+		int index = msg.lastIndexOf("'",msg.lastIndexOf("'")-1);
+		
+		// Returns the substring
+		return msg.substring(index+1,msg.length()-1);
 	}
 }

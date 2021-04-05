@@ -7,6 +7,7 @@ import java.sql.Timestamp;
 import org.json.JSONObject;
 
 import de.noahalbers.plca.backend.database.entitys.UserEntity;
+import de.noahalbers.plca.backend.database.exceptions.DuplicatedEntryException;
 import de.noahalbers.plca.backend.database.exceptions.EntityLoadException;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
 import de.noahalbers.plca.backend.server.reqeusts.Permissions;
@@ -20,7 +21,9 @@ public class RegisterUserRequest extends RequestHandler{
 	 * 	Errors:
 	 * 		database: Backend failed to establish a valid database connection
 	 * 		user: Client did not send a valid user (Could not be parsed, please check requirements)
-	 * 		unknown: an unknown error occurre. This should not happen. Please try again.	
+	 * 		unknown: an unknown error occurre. This should not happen. Please try again.
+	 * 		dup.name: A user with that name already exists
+	 * 		dup.rfid: A user with the rfid already exists
 	 * 
 	 * 	Success:
 	 * 		id: holds the users id
@@ -76,11 +79,28 @@ public class RegisterUserRequest extends RequestHandler{
 			request.sendResponse(new JSONObject() {{
 				this.put("id", user.id);
 			}});
+		} catch(DuplicatedEntryException e) {
+			
+			// Checks the name
+			switch(e.getFieldName()) {
+				case "uq_name":
+					// Sends a duplicate exception for the name
+					request.sendError("dup.name");
+					break;
+				case "rfid":
+					// Sends a duplicated exception for the rfid
+					request.sendError("dup.rfid");
+					break;
+			}
+			
+			// Unknown database error
+			this.sendErrorDatabase(request, e);
+			
 		} catch (EntitySaveException e) {
-			this.sendErrorUnknwonException(request, e);
+			this.sendErrorUnknownException(request, e);
 		} catch (SQLException e) {
 			this.sendErrorDatabase(request, e);
-		}catch(EntityLoadException e) {
+		} catch(EntityLoadException e) {
 			// Log
 			this.logger.debug(request+"has not send a valid user (could not be parsed)");
 			

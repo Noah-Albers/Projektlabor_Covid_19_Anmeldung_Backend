@@ -26,7 +26,8 @@ public class LoginRequest extends RequestHandler{
 	 * 
 	 * 	Success: Empty (User got logged in successfully)
 	 * 	
-	 * Request: Empty
+	 * Request:
+	 * 	id: user id
 	 * 
 	 */
 	
@@ -39,7 +40,7 @@ public class LoginRequest extends RequestHandler{
 	public void execute(Request request) throws IOException {
 		try {
 			// Gets the user id
-			Integer uid = request.getFromMessage("id");
+			Integer uid = request.getFromMessage("id",Integer.class);
 			if(uid == null) {
 				this.sendErrorMissingField(request, "id");
 				return;
@@ -85,7 +86,7 @@ public class LoginRequest extends RequestHandler{
 			this.sendErrorDatabase(request, e);
 		} catch (IllegalStateException|EntitySaveException e) {
 			// Those exception should both not occurre
-			this.sendErrorUnknwonException(request, e);
+			this.sendErrorUnknownException(request, e);
 		}
 	}
 

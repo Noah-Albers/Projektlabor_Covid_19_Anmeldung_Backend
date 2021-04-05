@@ -51,7 +51,7 @@ public class GrabUsersRequest extends RequestHandler{
 		} catch (SQLException e) {
 			this.sendErrorDatabase(request,e);
 		} catch (EntitySaveException e) {
-			this.sendErrorUnknwonException(request, e);
+			this.sendErrorUnknownException(request, e);
 		}
 	}
 

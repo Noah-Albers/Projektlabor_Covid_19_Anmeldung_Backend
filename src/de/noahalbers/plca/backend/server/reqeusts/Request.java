@@ -127,11 +127,10 @@ public class Request {
 	 * @return the object if provided; null if either no object got provided or the
 	 *         object had the wrong data-type
 	 */
-	@SuppressWarnings("unchecked")
 	@Nullable
-	public <T> T getFromMessage(String key) {
+	public <T> T getFromMessage(String key,Class<T> classOf) {
 		try {
-			return (T) this.message.get(key);
+			return classOf.cast(this.message.get(key));
 		} catch (Exception e) {
 			return null;
 		}

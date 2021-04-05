@@ -1,26 +1,21 @@
 package de.noahalbers.plca.backend.database.exceptions;
 
 import java.sql.SQLException;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.Map.Entry;
+import java.sql.SQLIntegrityConstraintViolationException;
+
+import de.noahalbers.plca.backend.database.PLCADatabase;
 
 public class DuplicatedEntryException extends SQLException{
 	private static final long serialVersionUID = 1736573624006882409L;
 
-	// The combination of entrys that can be duplicated
-	private Entry<String/*Name*/,Object/*Value*/>[] entrys;
+	// Name of the duplicated field
+	private String name;
 	
-	public DuplicatedEntryException(String name,Object value) {
-		this(new SimpleEntry<>(name,value));
+	public DuplicatedEntryException(SQLIntegrityConstraintViolationException exception) {
+		this.name = PLCADatabase.getDuplicatedEntry(exception);
 	}
 	
-	@SafeVarargs
-	public DuplicatedEntryException(Entry<String, Object>... entrys) {
-		this.entrys=entrys;
+	public String getFieldName() {
+		return this.name;
 	}
-	
-	public Entry<String, Object>[] getEntrys() {
-		return this.entrys;
-	}
-	
 }

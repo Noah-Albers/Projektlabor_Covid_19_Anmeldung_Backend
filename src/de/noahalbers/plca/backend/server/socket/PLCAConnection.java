@@ -139,9 +139,6 @@ public class PLCAConnection extends Thread {
 		} catch (IOException e) {
 			// Log
 			this.logger.debug(this.connectionID+" got disconnected (I/O Error): "+e.toString());
-			
-			// Kills the connection
-			this.killConnection(ConnectionStatus.DISCONNECTED_IO);
 		} finally {
 			// Deletes the object
 			if (request != null)
@@ -265,7 +262,7 @@ public class PLCAConnection extends Thread {
 	private void sendErrorAndClose(String error, ConnectionStatus status) throws IOException {
 		// Log
 		this.logger.debug(this.connectionID + " failed in pre-processing with: " + error + " (" + status + ")");
-
+		
 		// Sends an packet with an except-tag (Error
 		this.sendPacket(new JSONObject() {
 			{

@@ -16,15 +16,14 @@ public class GetStatusRequest extends RequestHandler{
 	/**
 	 * Responses:
 	 * 	Errors:
-	 * 		id: The Request ailed to deliver an id or the given key for id is not an integer.
+	 * 		id: The Request failed to deliver an id or the given key for id is not an integer.
 	 * 		database: Backend failed to establish a valid database connection
 	 * 		user: the given id does not correspont to any user in our system
 	 * 	
 	 * 	Success:
-	 * 		loggedin: true/false if the user with the given id
+	 * 		loggedin: true/false
 	 * 		if logged in:
 	 * 			start: the timestamp when the user logged in
-	 * 			id: the timespent id to update later
 	 * 	
 	 * Request:
 	 * 	id: Valid-Userid
@@ -40,7 +39,7 @@ public class GetStatusRequest extends RequestHandler{
 	public void execute(Request request) throws IOException {
 		try {
 			// Gets the id
-			Integer id = request.getFromMessage("id");
+			Integer id = request.getFromMessage("id",Integer.class);
 			if(id==null) {
 				this.sendErrorMissingField(request, "id");
 				return;

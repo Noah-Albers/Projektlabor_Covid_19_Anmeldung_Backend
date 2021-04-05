@@ -29,7 +29,6 @@ public class LogoutRequest extends RequestHandler{
 	 * 	
 	 * Request:
 	 * 		id: the id of the timespent entity (Received using the getstatus request)
-	 * 		stop: the time when the user wants to be logged out
 	 * 
 	 */
 	
@@ -42,16 +41,9 @@ public class LogoutRequest extends RequestHandler{
 	public void execute(Request request) throws IOException {
 		try {
 			// Gets the user id
-			Integer uid = request.getFromMessage("id");
+			Integer uid = request.getFromMessage("id",Integer.class);
 			if(uid==null) {
 				this.sendErrorMissingField(request, "id");
-				return;
-			}
-			
-			// Gets the stop time
-			Timestamp stop = request.getFromMessage("stop");
-			if(stop == null) {
-				this.sendErrorMissingField(request,"stop");
 				return;
 			}
 			
@@ -80,7 +72,7 @@ public class LogoutRequest extends RequestHandler{
 			TimespentEntity ent = optEnt.get();
 			
 			// Updates the time
-			ent.stopTime = stop;
+			ent.stopTime = new Timestamp(System.currentTimeMillis());
 			
 			// Updates the timespent entity on the database
 			this.database.updateTimespent(request.startDatabaseConnection(), ent);
@@ -93,7 +85,7 @@ public class LogoutRequest extends RequestHandler{
 		} catch(SQLException e) {
 			this.sendErrorDatabase(request, e);
 		} catch (EntitySaveException e) {
-			this.sendErrorUnknwonException(request, e);
+			this.sendErrorUnknownException(request, e);
 		}
 	}
 
