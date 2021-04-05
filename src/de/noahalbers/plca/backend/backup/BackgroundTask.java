@@ -104,10 +104,9 @@ public class BackgroundTask extends Thread {
 	 * Executes when a backup should be taken
 	 */
 	private void handleBackup() {
-		// TODO: Handle better
 		try{
 			// Logs the starting of the backup
-			this.logger.info("Starting backup task");
+			this.logger.info("Starting backup task, starting autodelete of old accounts...");
 
 			// Starts the connection
 			try(Connection con = this.database.startConnection())
@@ -115,6 +114,8 @@ public class BackgroundTask extends Thread {
 				// Deletes old accounts
 				this.database.doAutoDeleteAccounts(con);
 			}
+			
+			this.logger.debug("Removed old accounts, requesting database backup");
 			
 			// Gets the backup from the database
 			byte[] backup = this.database.requestDatabaseBackup().getBytes(StandardCharsets.UTF_8);
@@ -126,10 +127,12 @@ public class BackgroundTask extends Thread {
 			if (!encryptedBackup.isPresent())
 				throw new Exception("Failed to encrypt the backup");
 
+			this.logger.debug("Sending mail");
+			
 			// "Uploads" the backup to the server
 			this.sendEmail(encryptedBackup.get());
 		} catch (Exception e1) {
-			this.logger.error(e1);
+			this.logger.error("Error while taking backup").critical(e1);
 		}
 	}
 	
@@ -137,13 +140,12 @@ public class BackgroundTask extends Thread {
 	 * Executes when an autologout for old logins should be executed
 	 */
 	private void handleAutologout() {
-		// TODO: Handle better
 		try(Connection con = this.database.startConnection()){
 			this.logger.info("Starting autologout");
 			// Automatically logs out users
 			this.database.doAutologoutUsers(con);
 		} catch (SQLException e) {
-			this.logger.error(e);
+			this.logger.error("Error while logging old users out").critical(e);
 		}
 	}
 	

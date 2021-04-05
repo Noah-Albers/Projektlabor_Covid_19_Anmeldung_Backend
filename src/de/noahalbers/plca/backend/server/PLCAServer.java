@@ -48,14 +48,22 @@ public class PLCAServer extends Thread{
 	
 	@Override
 	public void interrupt() {
+		
+		this.plca.getLogger().debug("Stopping server (Interrupting Thread)");
+		
 		// Stops the server
 		try {
 			this.listener.close();
-		} catch (IOException e) {}
+		} catch (IOException e) {
+			this.plca.getLogger().error(e);
+		}
 	}
 	
 	@Override
 	public void run() {
+		
+		this.plca.getLogger().debug("Starting server");
+		
 		// Waits for connections
 		while(!this.isInterrupted()) {
 			try {

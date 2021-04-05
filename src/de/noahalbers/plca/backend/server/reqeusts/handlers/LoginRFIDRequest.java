@@ -42,6 +42,8 @@ public class LoginRFIDRequest extends RequestHandler{
 		// Gets the rfid
 		String rfid = request.getFromMessage("rfid", String.class);
 		if(rfid==null) {
+			// Log
+			this.logger.debug(request+"User not found");
 			request.sendError("rfid");
 			return;
 		}
@@ -52,6 +54,9 @@ public class LoginRFIDRequest extends RequestHandler{
 			
 			// Checks if the user could not be found
 			if(res.getKey() == null) {
+				this.logger
+				.debug(request+"User not found")
+				.critical(request+"RFID="+rfid);
 				request.sendError("user");
 				return;
 			}
@@ -71,6 +76,9 @@ public class LoginRFIDRequest extends RequestHandler{
 				request.sendResponse(new JSONObject() {{
 					put("status", true);
 				}});
+				
+				this.logger.debug(request+"Successfully finished request: login");
+				
 			}else {
 				// Gets the timespent
 				TimespentEntity ts = res.getValue();
@@ -86,6 +94,8 @@ public class LoginRFIDRequest extends RequestHandler{
 				request.sendResponse(new JSONObject() {{
 					put("status", false);
 				}});
+				
+				this.logger.debug(request+"Successfully finished request: logout");
 			}
 			
 			

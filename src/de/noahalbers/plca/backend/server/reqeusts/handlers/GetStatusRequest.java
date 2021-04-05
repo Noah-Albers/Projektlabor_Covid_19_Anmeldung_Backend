@@ -41,6 +41,11 @@ public class GetStatusRequest extends RequestHandler{
 			// Gets the id
 			Integer id = request.getFromMessage("id",Integer.class);
 			if(id==null) {
+				
+				this.logger
+				.debug(request+"id not found")
+				.critical("ID="+id);
+				
 				this.sendErrorMissingField(request, "id");
 				return;
 			}
@@ -65,12 +70,10 @@ public class GetStatusRequest extends RequestHandler{
 				status.put("id", optEnt.get().id);
 			}
 			
-			// Log
-			this.logger.debug(request+"successfully requested the status for User(id."+id+")");
-			
 			// Sends back the status
 			request.sendResponse(status);
 			
+			this.logger.debug(request+"Successfully finished request");
 		} catch (SQLException e) {
 			this.sendErrorDatabase(request,e);
 		}

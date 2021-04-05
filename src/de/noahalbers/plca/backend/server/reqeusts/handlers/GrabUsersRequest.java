@@ -47,6 +47,8 @@ public class GrabUsersRequest extends RequestHandler{
 			
 			// Sends back all found users
 			request.sendResponse(jsonUsers);
+
+			this.logger.debug(request+"Successfully finished request");
 			
 		} catch (SQLException e) {
 			this.sendErrorDatabase(request,e);

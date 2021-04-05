@@ -5,9 +5,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
+import de.noahalbers.plca.backend.PLCA;
+import de.noahalbers.plca.backend.logger.Logger;
 import de.noahalbers.plca.backend.server.socket.exception.PLCAConnectionTimeoutException;
 
 public class PLCASocket {
+	
+	// Reference to the logger
+	private Logger log = PLCA.getInstance().getLogger();
 
 	// Gets the send timeout
 	private final long sendTimeout;
@@ -23,6 +28,9 @@ public class PLCASocket {
 	private OutputStream writer;
 	
 	public PLCASocket(Socket socket,long timeout) {
+		
+		this.log.debug("Created PLCA-Socket");
+		
 		this.socket=socket;
 		this.sendTimeout = timeout;
 		
@@ -64,15 +72,17 @@ public class PLCASocket {
 				else
 					Thread.sleep(10);
 			} catch (IOException e) {
-				//TODO: Handle logging
 				this.killConnection();
+				this.log.debug("PLCA-Socket I/O-error, killed socket");
 				throw e;
 			} catch(InterruptedException e) {};
 			
 		}
 		// Kills the connection
 		this.killConnection();
-		//TODO: handle logging
+		
+		this.log.debug("PLCA-Socket timed out, killed the connection");
+		
 		throw new PLCAConnectionTimeoutException();
 	}
 	

@@ -13,7 +13,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import de.noahalbers.plca.backend.logger.Logger;
+
 public class Config {
+	
+	// Reference to the logger
+	private Logger log = PLCA.getInstance().getLogger();
 	
 	// Location of the config file
 	private static final File CONFIG_FILE = new File("config.cfg");
@@ -26,6 +31,11 @@ public class Config {
 	 * @throws IOException when the progam fails to write to the config file
 	 */
 	public Config saveConfig() throws IOException{
+		
+		this.log.debug("Saving config...");
+		
+		this.log.debug("Config: Opening file");
+		
 		// Opens the file
 		BufferedWriter bw = new BufferedWriter(new FileWriter(CONFIG_FILE));
 		
@@ -35,9 +45,14 @@ public class Config {
 		// Sorts the entrys
 		Collections.sort(entrys, (a,b)->a.getKey().compareTo(b.getKey()));
 		
+
+		this.log.debug("Config: Writing values");
+		
 		// Saves all values
 		for(Entry<String, String> entry : entrys)
 			bw.write(entry.getKey()+": "+entry.getValue()+"\n");
+		
+		this.log.debug("Config: Closing file");
 		
 		// Closes the writer
 		bw.close();
@@ -49,23 +64,32 @@ public class Config {
 	 * @throws IOException when the config fails to create or could not be loaded
 	 */
 	public Config loadConfig() throws IOException {
+		
+		this.log.debug("Config loading");
+		
 		// Ensures that the config exists
 		if(!CONFIG_FILE.exists()) {
+			this.log.debug("Config: File does not exists, creating new one");
+
 			// Ensures that the file directory exists
 			if(CONFIG_FILE.getParentFile() != null && CONFIG_FILE.getParentFile().isDirectory())
 				CONFIG_FILE.getParentFile().mkdirs();
-			
+
 			// Creates the new file
 			CONFIG_FILE.createNewFile();
 			// Writes the default values
 			return this.saveConfig();
 		}
+
+		this.log.debug("Config: Opening reader");
 		
 		// Opens the reader
 		BufferedReader br = new BufferedReader(new FileReader(CONFIG_FILE));
 		
 		// Temp-variable to load all lines
 		String ln;
+
+		this.log.debug("Config: Scanns all lines");
 		
 		// Iterates over all lines to load them
 		while((ln=br.readLine())!=null) {
@@ -86,6 +110,8 @@ public class Config {
 			// Adds the loaded value
 			this.loadedConfig.put(key, ln.substring(splitIndex+1).trim());
 		}
+		
+		this.log.debug("Config: Closing file");
 		
 		// Closes the file
 		br.close();

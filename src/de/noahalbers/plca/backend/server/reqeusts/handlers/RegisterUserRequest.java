@@ -72,22 +72,27 @@ public class RegisterUserRequest extends RequestHandler{
 			// Checks if an error appeared
 			this.database.registerUser(request.startDatabaseConnection(), user);
 			
-			// Log
-			this.logger.debug(request+"Successfully registered a new user: "+user);
-			
 			// Sends back that the request was successful
 			request.sendResponse(new JSONObject() {{
 				this.put("id", user.id);
 			}});
+
+			this.logger
+			.debug(request+"Registered new user")
+			.critical(request+"Id="+user.id);
 		} catch(DuplicatedEntryException e) {
 			
 			// Checks the name
 			switch(e.getFieldName()) {
 				case "uq_name":
+					this.logger
+					.debug(request+"Username already exists");
 					// Sends a duplicate exception for the name
 					request.sendError("dup.name");
 					break;
 				case "rfid":
+					this.logger
+					.debug(request+"RFID already exists");
 					// Sends a duplicated exception for the rfid
 					request.sendError("dup.rfid");
 					break;

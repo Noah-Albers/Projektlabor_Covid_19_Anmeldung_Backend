@@ -67,41 +67,67 @@ public class PLCA {
 		// Ensures that the current runtime support rsa and aes
 		Optional<String> optError = new EncryptionManager().init();
 		
+		this.logger.info("Checking Encryption services...");
+		
+		// TODO: Implement better encryption check
+		
 		// Checks if one of them isn't supported
 		if(new EncryptionManager().init().isPresent()) {
-			this.shutdown(optError.get()+" is not supported.");
+			this.logger
+			.error("Failed to start the encryption system, "+optError.get()+" is not supported.");
+			this.shutdown();
 			return;
 		}
+		
+		this.logger.info("Loading config...");
 		
 		try {
 			// TODO: Handle exception
 			// Loads the config	
 			this.config.loadConfig();
 		} catch (IOException e) {
-			this.shutdown(e);
+			this.logger
+			.error("Failed to load config")
+			.error(e);
+			this.shutdown();
 			return;
 		}
 		
+		
+		// TODO: Make database inited by default
 		// Creates the database
 		this.database = new PLCADatabase();
 		
+		this.logger.info("Connection to telegram bot...");
+
 		// TODO: Handle exceptions
 		try {
 			// Starts the telegram api
 			TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
 			api.registerBot(this.messenger = new TelegramBot());
 		} catch (TelegramApiException e) {
-			this.shutdown(e);
+			this.logger
+			.error("Failed to connect to the telegram api")
+			.error(e);
+			this.shutdown();
 			return;
 		}
+
+		this.logger.info("Starting background tasks");
 		
 		// Starts the backup task
 		try {
 			BackgroundTask backup = new BackgroundTask();
 			backup.start();
 		} catch (Exception e) {
-			this.shutdown(e);
+			this.logger
+			.error("Failed to start background task")
+			.error(e);
+			this.shutdown();
+			return;
 		}
+		
+		this.logger.info("Starting request server");
 		
 		// TODO: handle exception
 		try {
@@ -109,21 +135,18 @@ public class PLCA {
 			this.server = new PLCAServer();
 			this.server.start();
 		} catch (IOException e) {
-			this.shutdown(e);
+			this.logger
+			.error("Failed to start PLCA-Server")
+			.error(e);
+			this.shutdown();
 		}
 	}
 	
 	/**
-	 * Shuts the program down and handles the error
-	 * @param error the ciritical error that caused to program to fail
+	 * Shuts the program down
 	 */
-	private void shutdown(Object error) {
+	private void shutdown() {
 		System.exit(-1);
-		
-		// TODO: Handle better
-		
-		// Logs the error
-		this.logger.error(error);
 	}
 	
 	public TelegramBot getMessenger() {

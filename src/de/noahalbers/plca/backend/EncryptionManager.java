@@ -23,10 +23,15 @@ import org.json.JSONObject;
 
 import com.mysql.cj.exceptions.RSAException;
 
+import de.noahalbers.plca.backend.logger.Logger;
+
 public class EncryptionManager {
 
 	private static final String JSON_RSA_MODULUS = "modulus",
 						 	    JSON_RSA_EXPONENT = "exponent";
+
+	// Reference to the logger
+	private Logger log = PLCA.getInstance().getLogger();
 	
 	// RSA-Encryption system
 	private Cipher rsaCipher;
@@ -219,8 +224,7 @@ public class EncryptionManager {
 			this.aesCipher.init(mode, key, iv);
 			return Optional.of(this.aesCipher.doFinal(data));
 		} catch (InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
-			e.printStackTrace();
-			// TODO: log
+			this.log.error("Failed to use aes").critical(e);
 			return Optional.empty();
 		}
 	}
@@ -237,8 +241,7 @@ public class EncryptionManager {
 			this.rsaCipher.init(mode, key);
 			return Optional.of(this.rsaCipher.doFinal(data));
 		} catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-			e.printStackTrace();
-			// TODO: log
+			this.log.debug("Failed to use RSA").critical(e);
 			return Optional.empty();
 		}
 	}

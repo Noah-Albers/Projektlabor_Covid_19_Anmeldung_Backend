@@ -34,16 +34,21 @@ import de.noahalbers.plca.backend.database.entitys.UserEntity;
 import de.noahalbers.plca.backend.database.exceptions.DuplicatedEntryException;
 import de.noahalbers.plca.backend.database.exceptions.EntityLoadException;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
+import de.noahalbers.plca.backend.logger.Logger;
 
 public class PLCADatabase {
-
+	
 	// Reference to the program
 	private PLCA plca = PLCA.getInstance();
 
+	// Reference to the logger
+	private Logger log = this.plca.getLogger();
+	
 	/**
 	 * Generates a connection string for the database
 	 */
 	public String generateConnectionString() {
+		// Reference to the config
 		Config cfg = this.plca.getConfig();
 
 		return String.format("jdbc:mysql://%s:%s/%s", cfg.get("db_host"), cfg.get("db_port"),
@@ -59,6 +64,9 @@ public class PLCADatabase {
 	 *             if anything went wrong while grabbing the database
 	 */
 	public String requestDatabaseBackup() throws SQLException {
+		
+		this.log.debug("Starting database backup");
+		
 		// Gets the config
 		Config cfg = this.plca.getConfig();
 
@@ -71,11 +79,18 @@ public class PLCADatabase {
 		// Gets the export service
 		MysqlExportService s = new MysqlExportService(properties);
 		try {
+			this.log.debug("Starting the back, retrieving...");
 			// Retrieves the backup
 			s.export();
 		} catch (ClassNotFoundException | IOException e) {
+			this.log
+			.debug("Backup failed")
+			.critical(e);
 			throw new SQLException(e);
 		}
+
+		this.log.debug("Backup received successfully");
+		
 		// Returns the generated backup as a string
 		return s.getGeneratedSql();
 	}

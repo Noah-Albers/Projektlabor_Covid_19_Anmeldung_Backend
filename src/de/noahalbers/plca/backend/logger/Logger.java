@@ -11,6 +11,7 @@ public class Logger {
 	INFO = 0b100,			// User-info will get logged
 	WARNING = 0b1000,		// Warnings will get logged
 	ERROR = 0b10000,		// Critical errors will be logged
+	CRITICAL = 0b100000,	// Logs critical information (Person user stuff etc.) SHOULD ONLY BE USED FOR DEBUGGING AND NEVER TURNED ON BY DEFAULT!
 	ALL = ~0;				// All of the above will be logged
 	
 	// The level that the logger has (Used the above levels and concat them using | )
@@ -28,34 +29,36 @@ public class Logger {
 	 * @param prefix the prefix that can be printed before the message (Visual distinction)
 	 * @param msg the actual message that shall be logged
 	 */
-	private void log(int level,String prefix,Object msg) {
+	private Logger log(int level,String prefix,Object msg) {
 		// Checks if the log-level does not match
 		if((this.logLevel & level) == 0)
-			return;
+			return this;
 		
 		// Generates the final message
 		String finalMessage = prefix+msg.toString();
 		
 		// Outputs the info
 		System.out.println(finalMessage);
+		return this;
 	}
 	
-	public void debug(Object msg) {
-		this.log(DEBUG, "\t[DEBUG] ", msg);
+	public Logger debug(Object msg) {
+		return this.log(DEBUG, "\t[DEBUG] ", msg);
 	}
-	
-	public void debug_special(Object msg) {
-		this.log(DEBUG_SPECIAL, "[DEBUG++] ", msg);
+	public Logger debug_special(Object msg) {
+		return this.log(DEBUG_SPECIAL, "[DEBUG++] ", msg);
 	}
-
-	public void info(Object msg) {
-		this.log(INFO, "[INFO] ", msg);
+	public Logger info(Object msg) {
+		return this.log(INFO, "[INFO] ", msg);
 	}
-	public void warn(Object msg) {
-		this.log(WARNING, "[WARNING] ", msg);
+	public Logger warn(Object msg) {
+		return this.log(WARNING, "[WARNING] ", msg);
 	}
-	public void error(Object msg) {
-		this.log(ERROR, "[ERROR] ", msg);
+	public Logger error(Object msg) {
+		return this.log(ERROR, "[ERROR] ", msg);
+	}
+	public Logger critical(Object msg) {
+		return this.log(CRITICAL, "[CRITICAL] ", msg);
 	}
 	
 }
