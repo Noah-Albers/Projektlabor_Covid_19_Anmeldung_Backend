@@ -21,9 +21,9 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 
-import de.noahalbers.plca.backend.Config;
 import de.noahalbers.plca.backend.EncryptionManager;
 import de.noahalbers.plca.backend.PLCA;
+import de.noahalbers.plca.backend.config.Config;
 import de.noahalbers.plca.backend.database.PLCADatabase;
 import de.noahalbers.plca.backend.logger.Logger;
 import de.noahalbers.plca.backend.util.PresetTimer;
@@ -34,7 +34,7 @@ public class BackgroundTask extends Thread {
 	private PLCA plca = PLCA.getInstance();
 
 	// Reference to the logger
-	private Logger logger = this.plca.getLogger();
+	private Logger log = new Logger("Background Task");
 
 	// Reference to the config
 	private Config config = this.plca.getConfig();
@@ -43,8 +43,8 @@ public class BackgroundTask extends Thread {
 	private PLCADatabase database = this.plca.getDatabase();
 
 	// Timers for the backup and autologout
-	private PresetTimer backupTimer = new PresetTimer(Long.valueOf(this.plca.getConfig().get("backup_delay")));
-	private PresetTimer autologoutTimer = new PresetTimer(Long.valueOf(this.plca.getConfig().get("backup_autologout")));
+	private PresetTimer backupTimer = new PresetTimer(this.plca.getConfig().getUnsafe("backup_delay"));
+	private PresetTimer autologoutTimer = new PresetTimer(this.plca.getConfig().getUnsafe("backup_autologout"));
 	
 	// Encryption manager to encrypt the email backup
 	private EncryptionManager encryptionManager = new EncryptionManager();
@@ -62,7 +62,7 @@ public class BackgroundTask extends Thread {
 			throw new Exception("Failed to start the background tasks: Could not start encryption system: " + optErr.get());
 
 		// Gets the raw aes key
-		byte[] rawKey = this.config.get("email_encryption_key").getBytes(StandardCharsets.UTF_8);
+		byte[] rawKey = ((String)this.config.get("email_encryption_key")).getBytes(StandardCharsets.UTF_8);
 
 		// Generates the aes-values from the raw key
 		this.aesIV = new IvParameterSpec(this.encryptionManager.hashMD5(rawKey));
@@ -73,7 +73,7 @@ public class BackgroundTask extends Thread {
 	public void run() {
 
 		// Logs the starting of the process
-		this.logger.info("Started background task");
+		this.log.info("Started background task");
 
 		// Runs as long as not aborted
 		while (!Thread.currentThread().isInterrupted()) {
@@ -106,7 +106,7 @@ public class BackgroundTask extends Thread {
 	private void handleBackup() {
 		try{
 			// Logs the starting of the backup
-			this.logger.info("Starting backup task, starting autodelete of old accounts...");
+			this.log.info("Starting backup task, starting autodelete of old accounts...");
 
 			// Starts the connection
 			try(Connection con = this.database.startConnection())
@@ -115,7 +115,7 @@ public class BackgroundTask extends Thread {
 				this.database.doAutoDeleteAccounts(con);
 			}
 			
-			this.logger.debug("Removed old accounts, requesting database backup");
+			this.log.debug("Removed old accounts, requesting database backup");
 			
 			// Gets the backup from the database
 			byte[] backup = this.database.requestDatabaseBackup().getBytes(StandardCharsets.UTF_8);
@@ -127,12 +127,12 @@ public class BackgroundTask extends Thread {
 			if (!encryptedBackup.isPresent())
 				throw new Exception("Failed to encrypt the backup");
 
-			this.logger.debug("Sending mail");
+			this.log.debug("Sending mail");
 			
 			// "Uploads" the backup to the server
 			this.sendEmail(encryptedBackup.get());
 		} catch (Exception e1) {
-			this.logger.error("Error while taking backup").critical(e1);
+			this.log.error("Error while taking backup").critical(e1);
 		}
 	}
 	
@@ -141,11 +141,11 @@ public class BackgroundTask extends Thread {
 	 */
 	private void handleAutologout() {
 		try(Connection con = this.database.startConnection()){
-			this.logger.info("Starting autologout");
+			this.log.info("Starting autologout");
 			// Automatically logs out users
 			this.database.doAutologoutUsers(con);
 		} catch (SQLException e) {
-			this.logger.error("Error while logging old users out").critical(e);
+			this.log.error("Error while logging old users out").critical(e);
 		}
 	}
 	
@@ -161,15 +161,15 @@ public class BackgroundTask extends Thread {
 	 */
 	private void sendEmail(byte[] encryptedBackup) throws MessagingException {
 		// Gets the email
-		String email = this.config.get("email_mail");
+		String email = this.config.getUnsafe("email_mail");
 		// Gets the host
-		String host = this.config.get("email_host");
+		String host = this.config.getUnsafe("email_host");
 		// Gets the password
-		String passwd = this.config.get("email_password");
+		String passwd = this.config.getUnsafe("email_password");
 		// Gets the filename
-		String filename = this.config.get("email_filename");
+		String filename = this.config.getUnsafe("email_filename");
 		// Gets the email subject
-		String subject = this.config.get("email_subject");
+		String subject = this.config.getUnsafe("email_subject");
 
 		Properties prop = new Properties();
 		prop.put("mail.smtp.auth", true);

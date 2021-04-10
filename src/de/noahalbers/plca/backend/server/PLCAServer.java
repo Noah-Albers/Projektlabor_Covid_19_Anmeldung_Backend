@@ -9,6 +9,7 @@ import java.util.Random;
 import javax.annotation.Nullable;
 
 import de.noahalbers.plca.backend.PLCA;
+import de.noahalbers.plca.backend.logger.Logger;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.GetStatusRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.GrabUsersRequest;
@@ -22,6 +23,9 @@ public class PLCAServer extends Thread{
 
 	// Reference to the main app
 	private PLCA plca = PLCA.getInstance();
+	
+	// Logger
+	private Logger log = new Logger("PLCA-Server");
 	
 	// Server listener
 	private ServerSocket listener;
@@ -42,27 +46,23 @@ public class PLCAServer extends Thread{
 	}};
 	
 	public PLCAServer() throws IOException {
-		// TODO: Handle exceptions
-		this.listener = new ServerSocket(Integer.parseInt(this.plca.getConfig().get("port")));
+		this.listener = new ServerSocket(this.plca.getConfig().getUnsafe("port"));
 	}
 	
 	@Override
 	public void interrupt() {
-		
-		this.plca.getLogger().debug("Stopping server (Interrupting Thread)");
+		this.log.debug("Stopping server (Interrupting Thread)");
 		
 		// Stops the server
 		try {
 			this.listener.close();
-		} catch (IOException e) {
-			this.plca.getLogger().error(e);
-		}
+		} catch (IOException e) {}
 	}
 	
 	@Override
 	public void run() {
 		
-		this.plca.getLogger().debug("Starting server");
+		this.log.debug("Starting server");
 		
 		// Waits for connections
 		while(!this.isInterrupted()) {
@@ -71,10 +71,9 @@ public class PLCAServer extends Thread{
 				long cid = this.random.nextLong();
 				
 				// Creates the connection
-				new PLCAConnection(cid,this.listener.accept(), this.plca.getLogger()::info).start();
+				new PLCAConnection(cid,this.listener.accept(), x->{}).start();
 			} catch (Exception e) {
-				//TODO: handle better (Remove config long test stuff)
-				e.printStackTrace();
+				this.log.error("Error with a connection").critical(e);
 			}
 		}
 	}

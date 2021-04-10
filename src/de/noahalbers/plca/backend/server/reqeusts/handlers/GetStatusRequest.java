@@ -42,8 +42,8 @@ public class GetStatusRequest extends RequestHandler{
 			Integer id = request.getFromMessage("id",Integer.class);
 			if(id==null) {
 				
-				this.logger
-				.debug(request+"id not found")
+				request.logger
+				.debug("Id not found")
 				.critical("ID="+id);
 				
 				this.sendErrorMissingField(request, "id");
@@ -53,7 +53,7 @@ public class GetStatusRequest extends RequestHandler{
 			// Checks if the provided user exists
 			if(!this.database.doesUserExists(request.startDatabaseConnection(), id)) {
 				// Log
-				this.logger.debug(request+"Request provided a user id that does not correspont to any user.");
+				request.logger.debug("Request provided a user id that does not correspont to any user.");
 				// Sends back the error
 				request.sendError("user");
 				return;
@@ -73,7 +73,7 @@ public class GetStatusRequest extends RequestHandler{
 			// Sends back the status
 			request.sendResponse(status);
 			
-			this.logger.debug(request+"Successfully finished request");
+			request.logger.debug("Successfully finished request");
 		} catch (SQLException e) {
 			this.sendErrorDatabase(request,e);
 		}

@@ -5,12 +5,8 @@ import java.sql.SQLException;
 
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.PLCADatabase;
-import de.noahalbers.plca.backend.logger.Logger;
 
 public abstract class RequestHandler {
-
-	// Reference to the logger
-	protected Logger logger = PLCA.getInstance().getLogger();
 
 	// Reference to the database
 	protected PLCADatabase database = PLCA.getInstance().getDatabase();
@@ -44,9 +40,9 @@ public abstract class RequestHandler {
 	 */
 	public void sendErrorDatabase(Request req, SQLException e) throws IOException {
 		// Log
-		this.logger
-		.debug(req + "Failed to open a database connection")
-		.critical(req.toString()+e);
+		req.logger
+		.debug("Failed to open a database connection")
+		.critical(e);
 		// Sends back an connection error
 		req.sendError("database");
 	}
@@ -63,9 +59,9 @@ public abstract class RequestHandler {
 	 */
 	public void sendErrorUnknownException(Request req, Exception e) throws IOException {
 		// Log
-		this.logger
-		.warn(req + "Unknown exception occured")
-		.critical(req.toString()+e);
+		req.logger
+		.warn("Unknown exception occured")
+		.critical(e);
 		// Sends back an error
 		req.sendError("unknown");
 	}
@@ -82,8 +78,8 @@ public abstract class RequestHandler {
 	 */
 	public void sendErrorMissingField(Request req, String name) throws IOException {
 		// Log
-		this.logger
-		.debug(req + "Failed to send field=" + name);
+		req.logger
+		.debug("Failed to send field=" + name);
 		// Sends back the error
 		req.sendError(name);
 	}

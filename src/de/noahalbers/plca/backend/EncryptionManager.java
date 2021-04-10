@@ -30,8 +30,8 @@ public class EncryptionManager {
 	private static final String JSON_RSA_MODULUS = "modulus",
 						 	    JSON_RSA_EXPONENT = "exponent";
 
-	// Reference to the logger
-	private Logger log = PLCA.getInstance().getLogger();
+	// The logger
+	private Logger log = new Logger("EncryptionManager");
 	
 	// RSA-Encryption system
 	private Cipher rsaCipher;
@@ -186,6 +186,19 @@ public class EncryptionManager {
 	}
 	
 	/**
+	 * Loads a json-object from the given public key spec.
+	 * 
+	 * @param spec the spec to gets as json
+	 * @return an json object that contains the public key spec as base64 strings. This object can again be loaded by {@link #getPublicKeyFromSpec(RSAPublicKeySpec)}
+	 */
+	public static JSONObject getJsonFromPublicKeySpec(RSAPublicKeySpec spec) {
+		return new JSONObject() {{
+			this.put(JSON_RSA_MODULUS, parseBigintToBase64(spec.getModulus()));
+			this.put(JSON_RSA_EXPONENT, parseBigintToBase64(spec.getPublicExponent()));
+		}};
+	}
+	
+	/**
 	 * Converts a public key spec to a public key
 	 * @param spec
 	 * @return
@@ -209,6 +222,15 @@ public class EncryptionManager {
 	 */
 	private static BigInteger parseBase64ToBigint(String base64) throws IllegalArgumentException{
 		return new BigInteger(1,Base64.getDecoder().decode(base64.trim()));
+	}
+	/**
+	 * Parses the bigint to an base64-string
+	 * 
+	 * @param bigint the bitinteger to parse
+	 * @return a string of base64-character that contains the bigint
+	 */
+	private static String parseBigintToBase64(BigInteger bigint) {
+		return Base64.getEncoder().encodeToString(bigint.toByteArray());
 	}
 	
 	/**

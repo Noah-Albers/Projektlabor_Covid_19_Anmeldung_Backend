@@ -43,7 +43,7 @@ public class LogoutRequest extends RequestHandler{
 			// Gets the user id
 			Integer uid = request.getFromMessage("id",Integer.class);
 			if(uid==null) {
-				this.logger.debug(request+"User not provided.");
+				request.logger.debug("User not provided.");
 				this.sendErrorMissingField(request, "id");
 				return;
 			}
@@ -51,9 +51,9 @@ public class LogoutRequest extends RequestHandler{
 			// Checks if the user exists
 			if(!this.database.doesUserExists(request.startDatabaseConnection(), uid)) {
 				// Log
-				this.logger
-				.debug(request+"User not found")
-				.critical(request+"ID="+uid);
+				request.logger
+				.debug("User not found")
+				.critical("ID="+uid);
 				// Sends back the error
 				request.sendError("user");
 				return;
@@ -64,9 +64,9 @@ public class LogoutRequest extends RequestHandler{
 			
 			// Checks if the user is still logged in
 			if(!optEnt.isPresent()) {
-				this.logger
-				.debug(request+"User is not logged in, can not log him out.")
-				.critical(request+"ID="+uid);
+				request.logger
+				.debug("User is not logged in, can not log him out.")
+				.critical("ID="+uid);
 				// Sends an logged in error back
 				request.sendError("unauthorized");
 				return;
@@ -82,9 +82,9 @@ public class LogoutRequest extends RequestHandler{
 			// Updates the timespent entity on the database
 			this.database.updateTimespent(request.startDatabaseConnection(), ent);
 
-			this.logger
-			.debug(request+"Successfully finished request")
-			.critical(request+"ID="+uid);
+			request.logger
+			.debug("Successfully finished request")
+			.critical("ID="+uid);
 			
 			// Sends back the successful result
 			request.sendResponse(new JSONObject());

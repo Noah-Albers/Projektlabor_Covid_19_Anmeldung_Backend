@@ -42,7 +42,7 @@ public class LoginRequest extends RequestHandler{
 			// Gets the user id
 			Integer uid = request.getFromMessage("id",Integer.class);
 			if(uid == null) {
-				this.logger.debug(request+"Provided no id");
+				request.logger.debug("Provided no id");
 				this.sendErrorMissingField(request, "id");
 				return;
 			}
@@ -50,8 +50,8 @@ public class LoginRequest extends RequestHandler{
 			// Checks if the user exists
 			if(!this.database.doesUserExists(request.startDatabaseConnection(), uid)) {
 				// Log
-				this.logger
-				.debug(request+"User not found.")
+				request.logger
+				.debug("User not found.")
 				.critical("ID="+uid);
 				// Sends back the error
 				request.sendError("user");
@@ -64,9 +64,9 @@ public class LoginRequest extends RequestHandler{
 			// Checks if the user is still logged in
 			if(optEnt.isPresent()) {
 				// Log
-				this.logger
-				.debug(request+"Invalid request, user is still logged in.")
-				.critical(request+"ID="+uid);
+				request.logger
+				.debug("Invalid request, user is still logged in.")
+				.critical("ID="+uid);
 				// Sends an logged in error back
 				request.sendError("unauthorized");
 				return;
@@ -84,9 +84,9 @@ public class LoginRequest extends RequestHandler{
 			// Sends the successful login
 			request.sendResponse(new JSONObject());
 			
-			this.logger
-			.debug(request+"Successfully finished request")
-			.critical(request+"ID="+uid);
+			request.logger
+			.debug("Successfully finished request")
+			.critical("ID="+uid);
 			
 		} catch(SQLException e) {
 			this.sendErrorDatabase(request, e);

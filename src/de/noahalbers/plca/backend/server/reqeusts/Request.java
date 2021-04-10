@@ -11,6 +11,7 @@ import org.json.JSONObject;
 
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.entitys.AdminEntity;
+import de.noahalbers.plca.backend.logger.Logger;
 
 public class Request {
 
@@ -28,12 +29,12 @@ public class Request {
 	// The json message that got send
 	private JSONObject message;
 	
-	// Request id that can is used for debugging
-	private long requestID;
+	// Logger
+	public final Logger logger;
 
 	public Request(long requestID,JSONObject message, PacketSender doSend, PacketReceiver doReceive, @Nullable Connection dbConnection,
 			@Nullable AdminEntity admin) {
-		this.requestID=requestID;
+		this.logger = new Logger("Request."+requestID);
 		this.message = message;
 		this.doSend = doSend;
 		this.doReceive = doReceive;
@@ -171,11 +172,6 @@ public class Request {
 			}
 			this.dbConnection = null;
 		}
-	}
-
-	@Override
-	public String toString() {
-		return String.format("Request(id.%d) ", this.requestID);
 	}
 	
 	@FunctionalInterface

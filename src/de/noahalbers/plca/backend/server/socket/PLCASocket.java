@@ -5,14 +5,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.logger.Logger;
 import de.noahalbers.plca.backend.server.socket.exception.PLCAConnectionTimeoutException;
 
 public class PLCASocket {
 	
 	// Reference to the logger
-	private Logger log = PLCA.getInstance().getLogger();
+	private Logger log;
 
 	// Gets the send timeout
 	private final long sendTimeout;
@@ -27,7 +26,18 @@ public class PLCASocket {
 	private InputStream reader;
 	private OutputStream writer;
 	
-	public PLCASocket(Socket socket,long timeout) {
+	// Id of the connection
+	private long connectionId;
+	
+	/**
+	 * @param id a random id used to identify the connection in the log files
+	 * @param socket the raw java socket
+	 * @param timeout how man millis to wait until the connection is counted timed out
+	 */
+	public PLCASocket(long id,Socket socket,long timeout) {
+		// Creates the logger
+		this.log = new Logger("PLCA-Socket."+id);
+		this.connectionId=id;
 		
 		this.log.debug("Created PLCA-Socket");
 		
@@ -42,6 +52,20 @@ public class PLCASocket {
 	}
 	
 	/**
+	 * Waits for the given amount of bytes to be received and returns it
+	 * @param amount how many bytes to receive
+	 * @throws PLCAConnectionTimeoutException if the connection timed out
+	 * @throws IOException if anything went wrong with the I/O
+	 */
+	public byte[] readXBytes(int amount) throws IOException, PLCAConnectionTimeoutException{
+		// Reserves the space for the bytes
+		byte[] data = new byte[amount];
+		// Receives the bytes
+		this.readByte(data);
+		return data;
+	}
+	
+	/**
 	 * Takes an array with that will be filled with next next bytes that get be received.
 	 * @throws PLCAConnectionTimeoutException if the connection timed out
 	 * @throws IOException if anything went wrong with the I/O
@@ -51,6 +75,22 @@ public class PLCASocket {
 		for(int i=0;i<toFill.length;i++)
 			// Fill the slot
 			toFill[i] = this.readByte();
+	}
+	
+	/**
+	 * Reads the requested amount of bytes as ubytes
+	 * @param amount how many bytes to read from the stream
+	 * @throws PLCAConnectionTimeoutException if the connection timed out
+	 * @throws IOException if anything went wrong with the I/O
+	 */
+	public short[] readXUBytes(int amount) throws IOException, PLCAConnectionTimeoutException{
+		// Reserves the space for the bytes
+		short[] bytes = new short[amount];
+		// Waits for the bytes
+		for(int i=0;i<amount;i++)
+			bytes[i] = this.readUByte();
+		
+		return bytes;
 	}
 	
 	/**
@@ -131,5 +171,9 @@ public class PLCASocket {
 			} catch (IOException e) {}
 			this.socket = null;
 		}
+	}
+	
+	public long getConnectionId() {
+		return this.connectionId;
 	}
 }

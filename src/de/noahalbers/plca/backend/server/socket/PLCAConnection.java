@@ -2,6 +2,7 @@ package de.noahalbers.plca.backend.server.socket;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import java.sql.Connection;
@@ -35,7 +36,7 @@ public class PLCAConnection extends Thread {
 	private PLCA plca = PLCA.getInstance();
 
 	// Logger
-	private Logger logger = this.plca.getLogger();
+	private Logger log;
 
 	// The socket for the connection
 	private PLCASocket socket;
@@ -46,9 +47,6 @@ public class PLCAConnection extends Thread {
 	// Manager for the encryption
 	private EncryptionManager encryptionManager = new EncryptionManager();
 
-	// Id for this connection
-	private long connectionID;
-	
 	// A connection that has been opend to the database to extract information. May
 	// be null depending on the time
 	@Nullable
@@ -65,11 +63,12 @@ public class PLCAConnection extends Thread {
 	private SecretKeySpec aesKey;
 	@Nullable
 	private IvParameterSpec aesIv;
-
+	
 	public PLCAConnection(long connectionID,Socket socket, Consumer<ConnectionStatus> onStatusChange) throws NumberFormatException {
-		this.connectionID=connectionID;
+		this.log = new Logger("PLCAConnection."+connectionID);
+		
 		this.onStatusChange = onStatusChange;
-		this.socket = new PLCASocket(socket, Long.parseLong(this.plca.getConfig().get("connection_timeout")));
+		this.socket = new PLCASocket(connectionID,socket, this.plca.getConfig().getUnsafe("connection_timeout"));
 		this.encryptionManager.init();
 	}
 
@@ -125,20 +124,20 @@ public class PLCAConnection extends Thread {
 			}
 
 			// Creates the request
-			request = new Request(this.connectionID, requestData, this::sendPacket, this::receivePacket, this.dbconnection,
+			request = new Request(this.socket.getConnectionId(), requestData, this::sendPacket, this::receivePacket, this.dbconnection,
 					this.connectedAdmin);
 
 			// Executes the handler
 			handler.execute(request);
 
 			// Log
-			this.logger.debug(request+" got completed successfully. Disconnecting...");
+			this.log.debug("Got completed successfully. Disconnecting...");
 			
 			// Ends the connection
 			this.killConnection(ConnectionStatus.DISCONNECTED_SUCCESS);
 		} catch (IOException e) {
 			// Log
-			this.logger.debug(this.connectionID+" got disconnected (I/O Error): "+e.toString());
+			this.log.debug("Got disconnected (I/O Error)").critical(e.toString());
 		} finally {
 			// Deletes the object
 			if (request != null)
@@ -158,7 +157,7 @@ public class PLCAConnection extends Thread {
 			short clientId = this.socket.readUByte();
 
 			// Logs
-			this.logger.debug(this.connectionID + " Received clientid " + clientId);
+			this.log.debug("Received clientid").critical("ID="+clientId);
 
 			// Gets the remote rsa-public key
 			PublicKey remoteKey = this.getKeyAndPrepare(clientId);
@@ -187,18 +186,17 @@ public class PLCAConnection extends Thread {
 			this.socket.flush();
 
 			// Log
-			this.logger.debug(
-					"Handshake with Client(clientid." + clientId + ", connectionid." + this.connectionID + ") was successfull");
+			this.log.debug("Handshake was successfull");
 
 			return true;
 		} catch (IOException | PLCAAdminNotFoundException e) {
 			// Log
-			this.logger.debug(this.connectionID + e.toString());
+			this.log.debug("Auth error").critical(e);
 			// Kills the connection with an auth error
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 		} catch (RSAException | SQLException e) {
 			// Log
-			this.logger.warn(this.connectionID + e.toString());
+			this.log.warn("Auth error").critical(e);
 			// Kills the connection with an auth error
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 		}
@@ -229,8 +227,7 @@ public class PLCAConnection extends Thread {
 	private PublicKey getKeyAndPrepare(short id) throws SQLException, RSAException, PLCAAdminNotFoundException {
 		// Checks if the requester is from the covid-login
 		if (id == 0)
-			return this.encryptionManager.getPublicKeyFromSpec(EncryptionManager
-					.getPublicKeySpecFromJson(new JSONObject(this.plca.getConfig().get("applogin_pubK"))));
+			return this.encryptionManager.getPublicKeyFromSpec(this.plca.getConfig().getUnsafe("applogin_pubK"));
 
 		// Opens a connection to the database
 		this.dbconnection = this.plca.getDatabase().startConnection();
@@ -261,7 +258,7 @@ public class PLCAConnection extends Thread {
 	 */
 	private void sendErrorAndClose(String error, ConnectionStatus status) throws IOException {
 		// Log
-		this.logger.debug(this.connectionID + " failed in pre-processing with: " + error + " (" + status + ")");
+		this.log.debug("Failed in pre-processing").critical("Error="+error+" Status="+status);
 		
 		// Sends an packet with an except-tag (Error
 		this.sendPacket(new JSONObject() {
@@ -331,9 +328,11 @@ public class PLCAConnection extends Thread {
 	 */
 	public void sendPacket(JSONObject data) throws IOException {
 		try {
+			// Gets the raw packet bytes
+			byte[] rawPkt = data.toString().getBytes(StandardCharsets.UTF_8);
+			
 			// Tries to encrypt the message
-			Optional<byte[]> optEnc = this.encryptionManager
-					.encryptAES(data.toString().getBytes(StandardCharsets.UTF_8), this.aesKey, this.aesIv);
+			Optional<byte[]> optEnc = this.encryptionManager .encryptAES(rawPkt, this.aesKey, this.aesIv);
 
 			// Checks if the encryption failed
 			if (!optEnc.isPresent())
@@ -343,7 +342,7 @@ public class PLCAConnection extends Thread {
 
 			// Checks if an error occured with the amount of bytes that need to be send
 			if (pkt.length > Math.pow(2, 16))
-				this.logger.error("Connection needs to send a message with " + pkt.length
+				this.log.error("Connection needs to send a message with " + pkt.length
 						+ " bytes, but can only send a packet with " + Math.pow(2, 16) + " bytes!");
 
 			// Sends the length for the response

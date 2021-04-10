@@ -77,22 +77,22 @@ public class RegisterUserRequest extends RequestHandler{
 				this.put("id", user.id);
 			}});
 
-			this.logger
-			.debug(request+"Registered new user")
-			.critical(request+"Id="+user.id);
+			request.logger
+			.debug("Registered new user")
+			.critical("Id="+user.id);
 		} catch(DuplicatedEntryException e) {
 			
 			// Checks the name
 			switch(e.getFieldName()) {
 				case "uq_name":
-					this.logger
-					.debug(request+"Username already exists");
+					request.logger
+					.debug("Username already exists");
 					// Sends a duplicate exception for the name
 					request.sendError("dup.name");
 					break;
 				case "rfid":
-					this.logger
-					.debug(request+"RFID already exists");
+					request.logger
+					.debug("RFID already exists");
 					// Sends a duplicated exception for the rfid
 					request.sendError("dup.rfid");
 					break;
@@ -107,7 +107,7 @@ public class RegisterUserRequest extends RequestHandler{
 			this.sendErrorDatabase(request, e);
 		} catch(EntityLoadException e) {
 			// Log
-			this.logger.debug(request+"has not send a valid user (could not be parsed)");
+			request.logger.debug("Has not send a valid user (could not be parsed)");
 			
 			// Sends the error
 			request.sendError("user");

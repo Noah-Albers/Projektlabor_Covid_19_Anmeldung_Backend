@@ -25,8 +25,8 @@ import org.json.JSONException;
 import com.mysql.cj.exceptions.RSAException;
 import com.smattme.MysqlExportService;
 
-import de.noahalbers.plca.backend.Config;
 import de.noahalbers.plca.backend.PLCA;
+import de.noahalbers.plca.backend.config.Config;
 import de.noahalbers.plca.backend.database.entitys.AdminEntity;
 import de.noahalbers.plca.backend.database.entitys.SimpleUserEntity;
 import de.noahalbers.plca.backend.database.entitys.TimespentEntity;
@@ -37,13 +37,13 @@ import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
 import de.noahalbers.plca.backend.logger.Logger;
 
 public class PLCADatabase {
-	
+
 	// Reference to the program
 	private PLCA plca = PLCA.getInstance();
 
 	// Reference to the logger
-	private Logger log = this.plca.getLogger();
-	
+	private Logger log = new Logger("[PLCADatabase]");
+
 	/**
 	 * Generates a connection string for the database
 	 */
@@ -64,33 +64,36 @@ public class PLCADatabase {
 	 *             if anything went wrong while grabbing the database
 	 */
 	public String requestDatabaseBackup() throws SQLException {
-		
-		this.log.debug("Starting database backup");
-		
+
+		this.log.debug("Starting backup");
+
 		// Gets the config
 		Config cfg = this.plca.getConfig();
 
+		// Gets the password
+		String pw = cfg.getUnsafe("db_password");
+		if(pw.equals("*"))
+			pw="";
+			
 		// Generates the properties for the exporter
 		Properties properties = new Properties();
-		properties.setProperty(MysqlExportService.DB_USERNAME, cfg.get("db_user"));
-		properties.setProperty(MysqlExportService.DB_PASSWORD, cfg.get("db_password"));
+		properties.setProperty(MysqlExportService.DB_USERNAME, cfg.getUnsafe("db_user"));
+		properties.setProperty(MysqlExportService.DB_PASSWORD, pw);
 		properties.setProperty(MysqlExportService.JDBC_CONNECTION_STRING, this.generateConnectionString());
 
 		// Gets the export service
 		MysqlExportService s = new MysqlExportService(properties);
 		try {
-			this.log.debug("Starting the back, retrieving...");
+			this.log.debug("Retrieving...");
 			// Retrieves the backup
 			s.export();
 		} catch (ClassNotFoundException | IOException e) {
-			this.log
-			.debug("Backup failed")
-			.critical(e);
+			this.log.debug("Backup failed").critical(e);
 			throw new SQLException(e);
 		}
 
 		this.log.debug("Backup received successfully");
-		
+
 		// Returns the generated backup as a string
 		return s.getGeneratedSql();
 	}
@@ -104,7 +107,17 @@ public class PLCADatabase {
 	 */
 	public Connection startConnection() throws SQLException {
 		Config cfg = this.plca.getConfig();
-		return DriverManager.getConnection(this.generateConnectionString(), cfg.get("db_user"), cfg.get("db_password"));
+		
+		// Gets the password
+		String pw = cfg.getUnsafe("db_password");
+		if(pw.equals("*"))
+			pw="";
+		
+		return DriverManager.getConnection(
+			this.generateConnectionString(),
+			cfg.getUnsafe("db_user"),
+			pw
+		);
 	}
 
 	/**
@@ -299,7 +312,7 @@ public class PLCADatabase {
 			// Inserts all values
 			ps.setTimestamp(1, current);
 			ps.setTimestamp(2, current);
-			ps.setInt(3, Integer.valueOf(this.plca.getConfig().get("autologout_after_time")));
+			ps.setInt(3, this.plca.getConfig().getUnsafe("autologout_after_time"));
 
 			// Executes the statement
 			if (!ps.execute())
@@ -320,7 +333,7 @@ public class PLCADatabase {
 
 		// Calculates the timestamp before which old accounts should be deleted
 		Timestamp ts = new Timestamp(
-				System.currentTimeMillis() + Long.valueOf(this.plca.getConfig().get("autodelete_time")));
+				System.currentTimeMillis() + (Long)this.plca.getConfig().get("autodelete_time"));
 		// Creates the statement
 		try (Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 			// Adds the batches to delete
@@ -422,10 +435,10 @@ public class PLCADatabase {
 	 *         both (user;timespent)
 	 */
 	public Entry<SimpleUserEntity, TimespentEntity> getUserByRFID(String rfid, Connection con) throws SQLException {
-		
+
 		// The user that shall be found
 		SimpleUserEntity user = new SimpleUserEntity();
-		
+
 		// Prepares the select query for the user
 		try (PreparedStatement ps = con.prepareStatement(
 				this.getSelectQuery("user", UserEntity.RFID + "=?", SimpleUserEntity.DB_ENTRY_LIST))) {
@@ -433,22 +446,22 @@ public class PLCADatabase {
 			ps.setString(1, rfid);
 			// Executes the query
 			ResultSet res = ps.executeQuery();
-			
+
 			// Checks if no user got found
-			if(!res.next())
-				return new AbstractMap.SimpleEntry<>(null,null);
-			
+			if (!res.next())
+				return new AbstractMap.SimpleEntry<>(null, null);
+
 			// Tries to parse the user
 			user.load(res, SimpleUserEntity.DB_ENTRY_LIST);
 		} catch (EntityLoadException e) {
 			throw new SQLException(e);
 		}
-		
+
 		// Loads the last open timespent of that user
 		Optional<TimespentEntity> ts = this.getLastOpenTimespent(con, user.id);
-		
+
 		// Returns the entry for the user and optionally the timespent
-		return new AbstractMap.SimpleEntry<>(user,ts.isPresent() ? ts.get() : null);
+		return new AbstractMap.SimpleEntry<>(user, ts.isPresent() ? ts.get() : null);
 	}
 
 	/**
