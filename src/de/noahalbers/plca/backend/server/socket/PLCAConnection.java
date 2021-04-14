@@ -63,6 +63,10 @@ public class PLCAConnection extends Thread {
 	private SecretKeySpec aesKey;
 	@Nullable
 	private IvParameterSpec aesIv;
+
+	// The bytes that are required to be send when sending a response
+	@Nullable
+	private byte[] nonceBytes;
 	
 	public PLCAConnection(long connectionID,Socket socket, Consumer<ConnectionStatus> onStatusChange) throws NumberFormatException {
 		this.log = new Logger("PLCAConnection."+connectionID);
@@ -159,6 +163,11 @@ public class PLCAConnection extends Thread {
 			// Logs
 			this.log.debug("Received clientid").critical("ID="+clientId);
 
+			// Receives the nonce
+			this.nonceBytes = this.socket.readXBytes(8);
+			
+			this.log.debug("Received nonce").critical("Nonce="+Arrays.toString(this.nonceBytes));
+			
 			// Gets the remote rsa-public key
 			PublicKey remoteKey = this.getKeyAndPrepare(clientId);
 
@@ -331,8 +340,15 @@ public class PLCAConnection extends Thread {
 			// Gets the raw packet bytes
 			byte[] rawPkt = data.toString().getBytes(StandardCharsets.UTF_8);
 			
+			// Combines the nonce bytes and the data from the jobject
+			byte[] finPkt = ByteBuffer
+			.allocate(rawPkt.length+this.nonceBytes.length)
+			.put(this.nonceBytes)
+			.put(rawPkt)
+			.array();
+			
 			// Tries to encrypt the message
-			Optional<byte[]> optEnc = this.encryptionManager .encryptAES(rawPkt, this.aesKey, this.aesIv);
+			Optional<byte[]> optEnc = this.encryptionManager .encryptAES(finPkt, this.aesKey, this.aesIv);
 
 			// Checks if the encryption failed
 			if (!optEnc.isPresent())
