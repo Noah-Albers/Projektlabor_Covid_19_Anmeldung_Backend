@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import javax.annotation.Nullable;
+import de.noahalbers.plca.backend.util.Nullable;
 
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.logger.Logger;

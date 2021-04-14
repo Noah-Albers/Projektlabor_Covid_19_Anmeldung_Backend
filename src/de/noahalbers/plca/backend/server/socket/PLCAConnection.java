@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import de.noahalbers.plca.backend.util.Nullable;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 

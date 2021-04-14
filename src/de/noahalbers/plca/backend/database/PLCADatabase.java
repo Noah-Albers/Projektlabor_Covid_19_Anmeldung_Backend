@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
+import de.noahalbers.plca.backend.util.Nullable;
 
 import org.json.JSONException;
 

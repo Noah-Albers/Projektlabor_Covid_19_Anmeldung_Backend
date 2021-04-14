@@ -4,7 +4,7 @@ import java.lang.reflect.Field;
 import java.sql.Timestamp;
 import java.util.Map;
 
-import javax.annotation.Nullable;
+import de.noahalbers.plca.backend.util.Nullable;
 
 import de.noahalbers.plca.backend.database.EntityInfo;
 

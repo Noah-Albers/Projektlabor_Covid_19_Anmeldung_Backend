@@ -5,7 +5,7 @@ import java.sql.Timestamp;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
+import de.noahalbers.plca.backend.util.Nullable;
 
 import org.json.JSONObject;
 

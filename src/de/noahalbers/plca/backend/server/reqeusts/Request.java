@@ -5,7 +5,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
+import de.noahalbers.plca.backend.util.Nullable;
 
 import org.json.JSONObject;
 
