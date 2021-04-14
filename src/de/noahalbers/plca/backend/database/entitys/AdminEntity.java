@@ -16,7 +16,7 @@ public class AdminEntity extends Entity{
 	AUTH_CODE = "authcode",
 	AUTH_CODE_EXPIRE = "authcodetimeout",
 	IS_FROZEN = "isfrozen",
-	TELEGRAM_CHAT_ID = "telegramchatid",
+	EMAIL = "email",
 	RSA_KEY = "clientrsapublic",
 	PERMISSIONS = "permissions";
 
@@ -48,8 +48,8 @@ public class AdminEntity extends Entity{
 	@EntityInfo(IS_FROZEN)
 	public Boolean isFrozen;
 	// What id the used has on telegram (Used to provide the weak 2fa auth)
-	@EntityInfo(TELEGRAM_CHAT_ID)
-	public Long telegramChatId;
+	@EntityInfo(EMAIL)
+	public String email;
 
 	// The public key for the communication from the admin's client
 	@EntityInfo(RSA_KEY)
