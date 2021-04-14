@@ -1,6 +1,12 @@
 package de.noahalbers.plca.backend.logger;
 
-import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Logger {
 
@@ -16,20 +22,43 @@ public class Logger {
 									// DEBUGGING AND NEVER TURNED ON BY DEFAULT!
 			ALL = ~0; // All of the above will be logged
 
-	// The level that the logger has (Used the above levels and concat them using |
-	// )
-	private static int LOG_LEVEL;
+	// The level that the logger has (Used the above levels and concat them using | )
+	private static int LOG_LEVEL_WRITE,LOG_LEVEL_OUTPUT;
 
+	// The output stream to write to the log-file
+	private static OutputStream OPEN_FILE;
+	
 	// Source that can be logged
-	@Nullable
 	private final Object source;
 
-	public Logger(@Nullable Object source) {
+	public Logger(Object source) {
 		this.source = source;
 	}
 
-	public static void setLogLevel(int level) {
-		LOG_LEVEL = level;
+	/**
+	 * Starts the logger service (Opens the file etc)
+	 * @param logLevelWrite the log level for all logs that shall be written to the log-file
+	 * @param logLevelOutput the log level for all logs that shall be displayed on the console
+	 * @throws IOException 
+	 */
+	public static void init(File logDirectory,int logLevelWrite,int logLevelOutput) throws IOException {
+		LOG_LEVEL_WRITE = logLevelWrite;
+		LOG_LEVEL_OUTPUT = logLevelOutput;
+		
+		// Ensures that the directory exists
+		logDirectory.mkdirs();
+		
+		// Gets the file-formatter
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm-ss");
+		
+		// Gets the file
+		File file = new File(logDirectory,"Log-"+dtf.format(LocalDateTime.now())+".log");
+
+		// Creates the file
+		file.createNewFile();
+		
+		// Opens the file-stream
+		OPEN_FILE = new FileOutputStream(file);
 	}
 
 	/**
@@ -47,21 +76,32 @@ public class Logger {
 	 *            the source object that created the logger. Used to log from which
 	 *            object the logger gets called
 	 */
-	private static void log(int level, Object prefix, @Nullable Object source, @Nullable Object msg) {
-		// Checks if the log-level does not match
-		if ((LOG_LEVEL & level) == 0)
-			return;
-
+	private static void log(int level, Object prefix, Object source, Object msg) {
 		// Generates the final message
 		String finalMessage = String.format(
-			"%s%s%s",
-			prefix,
-			source == null ? "" : (" [" + source.toString() + "]"),
-			msg == null ? "" : (" " + msg.toString())
-		);
+				"%s%s%s\n",
+				prefix,
+				source == null ? "" : (" [" + source.toString() + "]"),
+						msg == null ? "" : (" " + msg.toString())
+				);
 
-		// Outputs the info
-		System.out.println(finalMessage);
+		// Checks if the log-level for output matches
+		if ((LOG_LEVEL_OUTPUT & level) != 0) {
+			// Outputs the info
+			System.out.print(finalMessage);			
+		}
+		
+		// Checks if the log-level for file-writing matches
+		if((LOG_LEVEL_WRITE & level) != 0) {
+			try {
+				// Outputs the message
+				OPEN_FILE.write(finalMessage.getBytes(StandardCharsets.UTF_8));
+			} catch (IOException e) {
+				// Error, can likely not be handled
+				System.err.println("ERROR");
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public Logger debug(Object msg) {
