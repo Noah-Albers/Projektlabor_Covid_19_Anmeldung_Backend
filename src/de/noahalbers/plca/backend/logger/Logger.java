@@ -22,7 +22,7 @@ public class Logger {
 									// DEBUGGING AND NEVER TURNED ON BY DEFAULT!
 			ALL = ~0; // All of the above will be logged
 
-	// The level that the logger has (Used the above levels and concat them using | )
+	// The level that the logger has (Use the above levels and concat them using | )
 	private static int LOG_LEVEL_WRITE,LOG_LEVEL_OUTPUT;
 
 	// The output stream to write to the log-file
