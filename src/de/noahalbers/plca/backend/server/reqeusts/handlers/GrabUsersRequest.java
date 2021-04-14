@@ -63,7 +63,7 @@ public class GrabUsersRequest extends RequestHandler{
 
 	@Override
 	public int getRequiredPermissions() {
-		return Permissions.DEFAULT_LOGIN;
+		return Permissions.EVERYONE;
 	}
 
 }

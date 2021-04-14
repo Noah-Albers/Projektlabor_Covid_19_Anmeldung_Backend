@@ -27,6 +27,7 @@ import de.noahalbers.plca.backend.logger.Logger;
 import de.noahalbers.plca.backend.server.reqeusts.Permissions;
 import de.noahalbers.plca.backend.server.reqeusts.Request;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
+import de.noahalbers.plca.backend.server.reqeusts.checks.RequestCheck;
 import de.noahalbers.plca.backend.server.socket.exception.PLCAAdminNotFoundException;
 import de.noahalbers.plca.backend.server.socket.exception.PLCAConnectionTimeoutException;
 
@@ -131,6 +132,11 @@ public class PLCAConnection extends Thread {
 			request = new Request(this.socket.getConnectionId(), requestData, this::sendPacket, this::receivePacket, this.dbconnection,
 					this.connectedAdmin);
 
+			// Checks that all permissions are given
+			for(RequestCheck check : handler.getChecks())
+				if(!check.checkRequest(request))
+					return;
+			
 			// Executes the handler
 			handler.execute(request);
 

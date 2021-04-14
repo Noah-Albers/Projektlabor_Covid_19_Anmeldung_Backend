@@ -5,12 +5,21 @@ import java.sql.SQLException;
 
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.PLCADatabase;
+import de.noahalbers.plca.backend.server.reqeusts.checks.RequestCheck;
 
 public abstract class RequestHandler {
 
 	// Reference to the database
 	protected PLCADatabase database = PLCA.getInstance().getDatabase();
 
+	/**
+	 * All checks that must be performed before the request can be processed
+	 * @return
+	 */
+	public RequestCheck[] getChecks() {
+		return new RequestCheck[0];
+	}
+	
 	/**
 	 * @return an int that indicates the required permissions to access the request
 	 *         handler. This int is encoded using simple binary or. Used
