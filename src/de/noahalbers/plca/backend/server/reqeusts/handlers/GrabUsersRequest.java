@@ -5,6 +5,8 @@ import java.sql.SQLException;
 
 import org.json.JSONObject;
 
+import com.mysql.cj.xdevapi.JsonArray;
+
 import de.noahalbers.plca.backend.database.entitys.SimpleUserEntity;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
 import de.noahalbers.plca.backend.server.reqeusts.Permissions;
@@ -33,14 +35,16 @@ public class GrabUsersRequest extends RequestHandler{
 			SimpleUserEntity[] dbUsers = this.database.getSimpleUsersFromDatabase(request.startDatabaseConnection());
 			
 			// Will hold all users
-			JSONObject jsonUsers = new JSONObject();
+			JSONObject jsonUsers = new JSONObject() {{
+				this.put("users", new JsonArray());
+			}};
 
 			// Appends all users to the list
 			for(SimpleUserEntity u : dbUsers) {
 				// Converts the user to json
 				JSONObject o = new JSONObject();
 				u.save(o, SimpleUserEntity.DB_ENTRY_LIST);
-				
+
 				// Appends the user
 				jsonUsers.append("users",o);
 			}
