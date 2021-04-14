@@ -141,13 +141,39 @@ public class PLCADatabase {
 			return ps.executeQuery().next();
 		}
 	}
+	
+	/**
+	 * Updates a given admin on the database
+	 * @param con
+	 *            the connection
+	 * @param entity
+	 *            the updated admin entity
+	 * @throws SQLException
+	 *             if anything went wrong
+	 * @throws EntitySaveException
+	 *             this error should not occurre. If it does something went wrong in
+	 *             the database
+	 */
+	public void updateAdmin(Connection con, AdminEntity entity) throws SQLException, EntitySaveException{
+		// Prepares the query
+		try (PreparedStatement ps = con.prepareStatement(
+				this.getUpdateQuery("admin", AdminEntity.ID, AdminEntity.DB_ENTRY_LIST))) {
+			// Inserts the values
+			entity.save(ps, AdminEntity.DB_ENTRY_LIST);
+			// Inserts the primary value
+			ps.setInt(AdminEntity.DB_ENTRY_LIST.length + 1, entity.id);
+
+			// Executes the statement
+			ps.execute();
+		}
+	}
 
 	/**
 	 * Updates a given timespent on the database
 	 * 
 	 * @param con
 	 *            the connection
-	 * @param ts
+	 * @param entity
 	 *            the updated timespent entity
 	 * @throws SQLException
 	 *             if anything went wrong
@@ -155,14 +181,14 @@ public class PLCADatabase {
 	 *             this error should not occurre. If it does something went wrong in
 	 *             the database
 	 */
-	public void updateTimespent(Connection con, TimespentEntity ts) throws SQLException, EntitySaveException {
+	public void updateTimespent(Connection con, TimespentEntity entity) throws SQLException, EntitySaveException {
 		// Prepares the query
 		try (PreparedStatement ps = con.prepareStatement(
 				this.getUpdateQuery("timespent", TimespentEntity.ID, TimespentEntity.DB_ENTRY_LIST))) {
 			// Inserts the values
-			ts.save(ps, TimespentEntity.DB_ENTRY_LIST);
+			entity.save(ps, TimespentEntity.DB_ENTRY_LIST);
 			// Inserts the primary value
-			ps.setInt(TimespentEntity.DB_ENTRY_LIST.length + 1, ts.id);
+			ps.setInt(TimespentEntity.DB_ENTRY_LIST.length + 1, entity.id);
 
 			// Executes the statement
 			ps.execute();
