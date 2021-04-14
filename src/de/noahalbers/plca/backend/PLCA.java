@@ -5,12 +5,7 @@ import java.math.BigInteger;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Optional;
 
-import org.telegram.telegrambots.meta.TelegramBotsApi;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-
 import de.noahalbers.plca.backend.backup.BackgroundTask;
-import de.noahalbers.plca.backend.chatmessenger.TelegramBot;
 import de.noahalbers.plca.backend.config.Config;
 import de.noahalbers.plca.backend.config.ConfigLoadException;
 import de.noahalbers.plca.backend.config.loaders.IntegerValue;
@@ -18,6 +13,7 @@ import de.noahalbers.plca.backend.config.loaders.LongValue;
 import de.noahalbers.plca.backend.config.loaders.RSAPublicKeyValue;
 import de.noahalbers.plca.backend.config.loaders.StringValue;
 import de.noahalbers.plca.backend.database.PLCADatabase;
+import de.noahalbers.plca.backend.email.EmailService;
 import de.noahalbers.plca.backend.logger.Logger;
 import de.noahalbers.plca.backend.server.PLCAServer;
 
@@ -25,9 +21,6 @@ public class PLCA {
 
 	// Singleton instance
 	private static PLCA SINGLETON_INSTANCE;
-	
-	// Telegram bot
-	private TelegramBot messenger;
 	
 	// Connection handler for the database
 	private PLCADatabase database;
@@ -40,8 +33,6 @@ public class PLCA {
 	
 	// Config for the program
 	private Config config = new Config()
-			.register("token", new StringValue(""),"Telegram-bot token that is used to access the telegram-bot")
-			.register("botname", new StringValue(""),"Name of the telegram-bot")
 			.register("db_host", new StringValue("localhost"),"Domain/Ip of the database host. Will usually be something like localhost")
 			.register("db_port", new IntegerValue(3306),"Port on which the database-server is running")
 			.register("db_user", new StringValue("root"),"Username that shall be used to access the database")
@@ -50,14 +41,14 @@ public class PLCA {
 			.register("connection_timeout", new LongValue(5000l),"How long to wait until a connection gets closed. Time in ms")
 			.register("applogin_pubK", new RSAPublicKeyValue(new RSAPublicKeySpec(new BigInteger("0"),new BigInteger("0"))),"The rsa-public-key in json-format that is used by the login-application. Is required to authenticate the login-app")
 			.register("port", new IntegerValue(1337),"On wich port the server that is waiting for connections is running")
-			.register("backup_delay", new LongValue(1000 * 60l),"How long to wait between backups. Time in ms")
 			.register("email_host", new StringValue(""),"Domain/Ip of the remote email server")
 			.register("email_mail", new StringValue(""),"Email-address that is used to send the backup-mail")
-			.register("email_port", new StringValue(""),"On which port the remote email server is running")
+			.register("email_port", new IntegerValue(587),"On which port the remote email server is running")
 			.register("email_password", new StringValue(""),"Password that is used to access the email-account")
-			.register("email_subject", new StringValue("Database-Backup"),"The subject that will be send on the email")
-			.register("email_filename", new StringValue("Backup.sql.enc"),"The filename of the encrypted database file that will be send using the email")
-			.register("email_encryption_key", new StringValue(""),"The raw aes-key that shall be used to encrypt the backup file before sending it")
+			.register("backup_delay", new LongValue(1000 * 60l),"How long to wait between backups. Time in ms")
+			.register("backup_email_subject", new StringValue("Database-Backup"),"The subject that will be send on the email")
+			.register("backup_email_filename", new StringValue("Backup.sql.enc"),"The filename of the encrypted database file that will be send using the email")
+			.register("backup_email_encryption_key", new StringValue(""),"The raw aes-key that shall be used to encrypt the backup file before sending it")
 			.register("backup_autologout", new LongValue(1000l*60*60),"How long to wait between logging users out that have been logged in for too long. Time in ms")
 			.register("autodelete_time", new LongValue(1000*60*60*24*7*4l),"How long a user needs to be inactive until his account can be deleted. Time in ms")
 			.register("autologout_after_time", new IntegerValue(4),"How many houres to wait between the autologout processes")
@@ -104,21 +95,6 @@ public class PLCA {
 			return;
 		}
 		
-		this.log.info("Connection to telegram bot...");
-
-		// TODO: Handle exceptions
-		try {
-			// Starts the telegram api
-			TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
-			api.registerBot(this.messenger = new TelegramBot());
-		} catch (TelegramApiException e) {
-			this.log
-			.error("Failed to connect to the telegram api")
-			.error(e);
-			this.shutdown();
-			return;
-		}
-
 		this.log.info("Starting background tasks");
 		
 		// Starts the backup task
@@ -155,10 +131,6 @@ public class PLCA {
 		System.exit(-1);
 	}
 	
-	public TelegramBot getMessenger() {
-		return this.messenger;
-	}
-
 	public PLCADatabase getDatabase() {
 		return this.database;
 	}
