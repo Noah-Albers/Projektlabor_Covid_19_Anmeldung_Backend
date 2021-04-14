@@ -31,6 +31,9 @@ public class PLCA {
 	// Logger
 	private Logger log = new Logger("PLCA-Main");
 	
+	// Email service
+	private EmailService emailManager;
+	
 	// Config for the program
 	private Config config = new Config()
 			.register("db_host", new StringValue("localhost"),"Domain/Ip of the database host. Will usually be something like localhost")
@@ -41,11 +44,11 @@ public class PLCA {
 			.register("connection_timeout", new LongValue(5000l),"How long to wait until a connection gets closed. Time in ms")
 			.register("applogin_pubK", new RSAPublicKeyValue(new RSAPublicKeySpec(new BigInteger("0"),new BigInteger("0"))),"The rsa-public-key in json-format that is used by the login-application. Is required to authenticate the login-app")
 			.register("port", new IntegerValue(1337),"On wich port the server that is waiting for connections is running")
+			.register("backup_delay", new LongValue(1000 * 60l),"How long to wait between backups. Time in ms")
 			.register("email_host", new StringValue(""),"Domain/Ip of the remote email server")
 			.register("email_mail", new StringValue(""),"Email-address that is used to send the backup-mail")
 			.register("email_port", new IntegerValue(587),"On which port the remote email server is running")
 			.register("email_password", new StringValue(""),"Password that is used to access the email-account")
-			.register("backup_delay", new LongValue(1000 * 60l),"How long to wait between backups. Time in ms")
 			.register("backup_email_subject", new StringValue("Database-Backup"),"The subject that will be send on the email")
 			.register("backup_email_filename", new StringValue("Backup.sql.enc"),"The filename of the encrypted database file that will be send using the email")
 			.register("backup_email_encryption_key", new StringValue(""),"The raw aes-key that shall be used to encrypt the backup file before sending it")
@@ -95,6 +98,16 @@ public class PLCA {
 			return;
 		}
 		
+		this.log.info("Starting email service");
+		
+		// Starts the email manager
+		this.emailManager = new EmailService(
+			this.config.getUnsafe("email_mail"),
+			this.config.getUnsafe("email_host"),
+			this.config.getUnsafe("email_password"),
+			this.config.getUnsafe("email_port")
+		);
+		
 		this.log.info("Starting background tasks");
 		
 		// Starts the backup task
@@ -141,6 +154,10 @@ public class PLCA {
 	
 	public PLCAServer getServer() {
 		return this.server;
+	}
+	
+	public EmailService getEmailService() {
+		return this.emailManager;
 	}
 	
 	public static PLCA getInstance() {

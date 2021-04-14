@@ -4,22 +4,9 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Optional;
-import java.util.Properties;
 
-import javax.activation.DataHandler;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import javax.mail.Authenticator;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
 
 import de.noahalbers.plca.backend.EncryptionManager;
 import de.noahalbers.plca.backend.PLCA;
@@ -62,7 +49,7 @@ public class BackgroundTask extends Thread {
 			throw new Exception("Failed to start the background tasks: Could not start encryption system: " + optErr.get());
 
 		// Gets the raw aes key
-		byte[] rawKey = ((String)this.config.get("email_encryption_key")).getBytes(StandardCharsets.UTF_8);
+		byte[] rawKey = ((String)this.config.get("backup_email_encryption_key")).getBytes(StandardCharsets.UTF_8);
 
 		// Generates the aes-values from the raw key
 		this.aesIV = new IvParameterSpec(this.encryptionManager.hashMD5(rawKey));
@@ -129,10 +116,16 @@ public class BackgroundTask extends Thread {
 
 			this.log.debug("Sending mail");
 			
-			// "Uploads" the backup to the server
-			this.sendEmail(encryptedBackup.get());
+			// Uploads the backup to the server
+			this.plca.getEmailService().uploadFile(
+				this.config.getUnsafe("backup_email_filename"),
+				encryptedBackup.get(),
+				this.config.getUnsafe("backup_email_subject")
+			);
 		} catch (Exception e1) {
-			this.log.error("Error while taking backup").critical(e1);
+			this.log
+			.error("Error while taking backup")
+			.critical(e1);
 		}
 	}
 	
@@ -145,68 +138,9 @@ public class BackgroundTask extends Thread {
 			// Automatically logs out users
 			this.database.doAutologoutUsers(con);
 		} catch (SQLException e) {
-			this.log.error("Error while logging old users out").critical(e);
+			this.log
+			.error("Error while logging old users out")
+			.critical(e);
 		}
 	}
-	
-	
-	/**
-	 * Sends an email with the given sqlBackup-string to the configured provider to
-	 * store as a backup
-	 * 
-	 * @param encryptedBackup
-	 *            the encrypted bytes of the sql-backup
-	 * @throws MessagingException
-	 *             if anything went wrong with sending the email
-	 */
-	private void sendEmail(byte[] encryptedBackup) throws MessagingException {
-		// Gets the email
-		String email = this.config.getUnsafe("email_mail");
-		// Gets the host
-		String host = this.config.getUnsafe("email_host");
-		// Gets the password
-		String passwd = this.config.getUnsafe("email_password");
-		// Gets the filename
-		String filename = this.config.getUnsafe("email_filename");
-		// Gets the email subject
-		String subject = this.config.getUnsafe("email_subject");
-
-		Properties prop = new Properties();
-		prop.put("mail.smtp.auth", true);
-		prop.put("mail.smtp.starttls.enable", "true");
-		prop.put("mail.smtp.host", host);
-		prop.put("mail.smtp.port", this.config.get("email_port"));
-		prop.put("mail.smtp.ssl.trust", host);
-
-		// Prepares the session to connect to the provider
-		Session session = Session.getInstance(prop, new Authenticator() {
-			@Override
-			protected PasswordAuthentication getPasswordAuthentication() {
-				return new PasswordAuthentication(email, passwd);
-			}
-		});
-
-		// Body-part that attaches the file
-		MimeBodyPart mbp = new MimeBodyPart() {
-			{
-				this.setDataHandler(
-						new DataHandler(new ByteArrayDataSource(encryptedBackup, "application/octet-stream")));
-				this.setFileName(filename);
-			}
-		};
-
-		// Creates the email that will be send
-		Message message = new MimeMessage(session) {
-			{
-				this.setFrom(new InternetAddress(email));
-				this.setRecipients(Message.RecipientType.TO, InternetAddress.parse(email));
-				this.setSubject(subject);
-				this.setContent(new MimeMultipart(mbp));
-			}
-		};
-
-		// Sends the email (Message)
-		Transport.send(message);
-	}
-
 }
