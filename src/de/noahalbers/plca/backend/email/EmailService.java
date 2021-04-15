@@ -17,8 +17,6 @@ import javax.mail.util.ByteArrayDataSource;
 
 public class EmailService {
 
-	//TODO:monospace
-	
 	// Email config
 	private Properties emailConfig;
 	

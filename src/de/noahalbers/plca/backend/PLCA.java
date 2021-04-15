@@ -86,7 +86,6 @@ public class PLCA {
 		this.log.info("Loading config...");
 		
 		try {
-			// TODO: Handle exception
 			// Loads the config	
 			this.config.loadConfig();
 		} catch (IOException e) {
@@ -127,7 +126,6 @@ public class PLCA {
 		
 		this.log.info("Starting request server");
 		
-		// TODO: handle exception
 		try {
 			// Start the server
 			this.server = new PLCAServer();

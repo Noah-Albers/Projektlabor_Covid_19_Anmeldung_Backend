@@ -58,7 +58,6 @@ public class BackgroundTask extends Thread {
 
 	@Override
 	public void run() {
-
 		// Logs the starting of the process
 		this.log.info("Started background task");
 
@@ -69,6 +68,7 @@ public class BackgroundTask extends Thread {
 				// Delay
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {}
+			
 			
 			// Checks if the autologout should be executed
 			if(this.autologoutTimer.hasReached()) {

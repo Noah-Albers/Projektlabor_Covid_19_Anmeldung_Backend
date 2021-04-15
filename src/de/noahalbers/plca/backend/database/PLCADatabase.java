@@ -42,7 +42,7 @@ public class PLCADatabase {
 	private PLCA plca = PLCA.getInstance();
 
 	// Reference to the logger
-	private Logger log = new Logger("[PLCADatabase]");
+	private Logger log = new Logger("PLCADatabase");
 
 	/**
 	 * Generates a connection string for the database

@@ -7,8 +7,7 @@ import de.noahalbers.plca.backend.logger.Logger;
 
 public class Main {
 	
-	public static void main(String[] args) {
-		
+	public static void main(String[] args) {		
 		// If the debug parameter is set
 		int debug = args.length > 0 && args[0].equalsIgnoreCase("-d")? (Logger.CRITICAL | Logger.DEBUG) : Logger.NONE;
 		
