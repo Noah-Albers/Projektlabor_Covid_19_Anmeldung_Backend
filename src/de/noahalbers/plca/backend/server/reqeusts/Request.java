@@ -56,7 +56,7 @@ public class Request {
 			// Appends the success status
 			this.accumulate("status", 1);
 			// Appends the data
-			this.accumulate("data", data);
+			this.accumulate("data", data == null ? new JSONObject() : data);
 		}};
 
 		// Sends the response

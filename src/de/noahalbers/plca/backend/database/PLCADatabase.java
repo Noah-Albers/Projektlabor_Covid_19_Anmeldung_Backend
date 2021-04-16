@@ -18,8 +18,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import de.noahalbers.plca.backend.util.Nullable;
-
 import org.json.JSONException;
 
 import com.mysql.cj.exceptions.RSAException;
@@ -35,6 +33,7 @@ import de.noahalbers.plca.backend.database.exceptions.DuplicatedEntryException;
 import de.noahalbers.plca.backend.database.exceptions.EntityLoadException;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
 import de.noahalbers.plca.backend.logger.Logger;
+import de.noahalbers.plca.backend.util.Nullable;
 
 public class PLCADatabase {
 
@@ -72,9 +71,9 @@ public class PLCADatabase {
 
 		// Gets the password
 		String pw = cfg.getUnsafe("db_password");
-		if(pw.equals("*"))
-			pw="";
-			
+		if (pw.equals("*"))
+			pw = "";
+
 		// Generates the properties for the exporter
 		Properties properties = new Properties();
 		properties.setProperty(MysqlExportService.DB_USERNAME, cfg.getUnsafe("db_user"));
@@ -107,17 +106,13 @@ public class PLCADatabase {
 	 */
 	public Connection startConnection() throws SQLException {
 		Config cfg = this.plca.getConfig();
-		
+
 		// Gets the password
 		String pw = cfg.getUnsafe("db_password");
-		if(pw.equals("*"))
-			pw="";
-		
-		return DriverManager.getConnection(
-			this.generateConnectionString(),
-			cfg.getUnsafe("db_user"),
-			pw
-		);
+		if (pw.equals("*"))
+			pw = "";
+
+		return DriverManager.getConnection(this.generateConnectionString(), cfg.getUnsafe("db_user"), pw);
 	}
 
 	/**
@@ -141,9 +136,10 @@ public class PLCADatabase {
 			return ps.executeQuery().next();
 		}
 	}
-	
+
 	/**
 	 * Updates a given admin on the database
+	 * 
 	 * @param con
 	 *            the connection
 	 * @param entity
@@ -154,10 +150,10 @@ public class PLCADatabase {
 	 *             this error should not occurre. If it does something went wrong in
 	 *             the database
 	 */
-	public void updateAdmin(Connection con, AdminEntity entity) throws SQLException, EntitySaveException{
+	public void updateAdmin(Connection con, AdminEntity entity) throws SQLException, EntitySaveException {
 		// Prepares the query
-		try (PreparedStatement ps = con.prepareStatement(
-				this.getUpdateQuery("admin", AdminEntity.ID, AdminEntity.DB_ENTRY_LIST))) {
+		try (PreparedStatement ps = con
+				.prepareStatement(this.getUpdateQuery("admin", AdminEntity.ID, AdminEntity.DB_ENTRY_LIST))) {
 			// Inserts the values
 			entity.save(ps, AdminEntity.DB_ENTRY_LIST);
 			// Inserts the primary value
@@ -322,6 +318,23 @@ public class PLCADatabase {
 	}
 
 	/**
+	 * Logs out all users that are still logged in.
+	 * @param con the connection to use
+	 * @return how many user got logged out
+	 * @throws SQLException if anything went wrong with the connection
+	 */
+	public int logoutAllUsers(Connection con) throws SQLException {
+		// Creates the query
+		try (PreparedStatement ps = con.prepareStatement(
+				"UPDATE `timespent` SET `stop`=? WHERE `stop` IS NULL;")) {
+			ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+			
+			// Sends the update
+			return ps.executeUpdate();
+		}
+	}
+
+	/**
 	 * Logs out all users that have been logged in to long (Config value)
 	 * 
 	 * @param con
@@ -358,8 +371,7 @@ public class PLCADatabase {
 	public void doAutoDeleteAccounts(Connection con) throws SQLException {
 
 		// Calculates the timestamp before which old accounts should be deleted
-		Timestamp ts = new Timestamp(
-				System.currentTimeMillis() + (Long)this.plca.getConfig().get("autodelete_time"));
+		Timestamp ts = new Timestamp(System.currentTimeMillis() + (Long) this.plca.getConfig().get("autodelete_time"));
 		// Creates the statement
 		try (Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
 			// Adds the batches to delete
