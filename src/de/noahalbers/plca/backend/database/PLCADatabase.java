@@ -206,10 +206,11 @@ public class PLCADatabase {
 	 * @param con - the connection to use
 	 * @param userid - the id of the infected user.
 	 * @param afterDate - the date that shall be used to determine old entry's. Contacts before this date wont be counted
+	 * @param marginTime - the amount of time (minutes) that should be added as a margin to the logout time of a user as the time where the aerosols are still present
 	 * @return a list with users that had contact and a list for every user with their corresponding contact times (contact infos)
 	 * @throws SQLException if anything went wrong with the connection
 	 */
-	public Map<UserEntity, List<ContactInfoEntity>> getContactInfosForUser(Connection con, int userid,Timestamp afterDate)
+	public Map<UserEntity, List<ContactInfoEntity>> getContactInfosForUser(Connection con, int userid,Timestamp afterDate,int marginTime)
 			throws SQLException {
 		
 		// Map holds all users with their contacts
@@ -227,10 +228,11 @@ public class PLCADatabase {
 		Runnable userSelection = ()->{
 			// Prepares the query to get all infected users
 			try(PreparedStatement ps = con.prepareStatement(
-					"SELECT DISTINCT u.id, u.firstname, u.lastname, u.postalcode, u.location, u.street, u.housenumber, u.telephone, u.email FROM timespent i JOIN timespent c ON i.userid != c.userid AND ADDTIME(CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END, '1500' ) >= c.start AND i.start <=( CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) JOIN user u ON u.id=c.userid WHERE i.userid = ? AND i.stop > ?;")){
+					"SELECT DISTINCT u.id, u.firstname, u.lastname, u.postalcode, u.location, u.street, u.housenumber, u.telephone, u.email FROM timespent i JOIN timespent c ON i.userid != c.userid AND ADDTIME(CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END, ? ) >= c.start AND i.start <=( CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) JOIN user u ON u.id=c.userid WHERE i.userid = ? AND i.stop > ?;")){
 				// Sets the values
-				ps.setInt(1, userid);
-				ps.setTimestamp(2, afterDate);
+				ps.setInt(1, marginTime*60);
+				ps.setInt(2, userid);
+				ps.setTimestamp(3, afterDate);
 				
 				// Executes the query
 				ResultSet res = ps.executeQuery();
@@ -254,10 +256,11 @@ public class PLCADatabase {
 		Runnable contactSelection = ()->{
 			// Prepares the query to grab all contact infos
 			try (PreparedStatement ps = con.prepareStatement(
-					"SELECT i.start AS 'istart', (CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END) AS 'istop', c.userid AS 'cid', c.start AS 'cstart', (CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) AS 'cStop' FROM timespent i JOIN timespent c ON i.userid != c.userid AND ADDTIME(CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END, '1500') >= c.start AND i.start <= (CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) WHERE i.userid = ? AND i.stop > ?;")) {
+					"SELECT i.start AS 'istart', (CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END) AS 'istop', c.userid AS 'cid', c.start AS 'cstart', (CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) AS 'cStop' FROM timespent i JOIN timespent c ON i.userid != c.userid AND ADDTIME(CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END, ?) >= c.start AND i.start <= (CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) WHERE i.userid = ? AND i.stop > ?;")) {
 				// Sets the values
-				ps.setInt(1, userid);
-				ps.setTimestamp(2, afterDate);
+				ps.setInt(1, marginTime*60);
+				ps.setInt(2, userid);
+				ps.setTimestamp(3, afterDate);
 				
 				// Executes the query
 				ResultSet res = ps.executeQuery();

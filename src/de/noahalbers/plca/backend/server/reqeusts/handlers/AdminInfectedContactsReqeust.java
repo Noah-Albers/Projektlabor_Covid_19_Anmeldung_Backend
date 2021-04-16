@@ -26,6 +26,7 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 	 * 		database: Backend failed to establish a valid database connection
 	 * 		user: The given user-id does not correspont to any user in our system or has not been passed
 	 * 		unknown: An unkown error occurred
+	 * 		margintime: The margin-time is not given or less than 0
 	 * 	
 	 * 	Success:
 	 * 		users: Array
@@ -36,6 +37,7 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 	 * Request:
 	 * 	afterdate: the date after which the contacts should be listed.
 	 * 	user: the user-id of the user of which the contacts should be listed
+	 * 	margintime: how many minutes of margin (spacing) should be counted to a users logout time. Represents the time that the aerosols are still present.
 	 * 
 	 */
 	
@@ -68,6 +70,13 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 			return;
 		}
 		
+		// Gets the margin-time
+		Integer marginTime = request.getFromMessage("margintime", Integer.class);
+		if(marginTime==null || marginTime < 0) {
+			this.sendErrorMissingField(request, "margintime");
+			return;
+		}
+		
 		try {
 			// Checks if the given user exists
 			if(!this.database.doesUserExists(request.startDatabaseConnection(), userId)) {
@@ -76,7 +85,7 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 			}
 			
 			// Gets the contacts from the user
-			Map<UserEntity, List<ContactInfoEntity>> contacts = this.database.getContactInfosForUser(request.startDatabaseConnection(), userId, new Timestamp(afterDateStamp));
+			Map<UserEntity, List<ContactInfoEntity>> contacts = this.database.getContactInfosForUser(request.startDatabaseConnection(), userId, new Timestamp(afterDateStamp),marginTime);
 			
 			// Response object
 			JSONObject resp = new JSONObject() {{
