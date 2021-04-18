@@ -17,7 +17,7 @@ public abstract class RequestHandler {
 	 * @return
 	 */
 	public RequestCheck[] getChecks() {
-		return new RequestCheck[0];
+		return of();
 	}
 	
 	/**
@@ -47,7 +47,7 @@ public abstract class RequestHandler {
 	 * @throws IOException
 	 *             forward
 	 */
-	public void sendErrorDatabase(Request req, SQLException e) throws IOException {
+	protected void sendErrorDatabase(Request req, SQLException e) throws IOException {
 		// Log
 		req.logger
 		.debug("Failed to open a database connection")
@@ -66,7 +66,7 @@ public abstract class RequestHandler {
 	 * @throws IOException
 	 *             forward
 	 */
-	public void sendErrorUnknownException(Request req, Exception e) throws IOException {
+	protected void sendErrorUnknownException(Request req, Exception e) throws IOException {
 		// Log
 		req.logger
 		.warn("Unknown exception occured")
@@ -85,11 +85,16 @@ public abstract class RequestHandler {
 	 * @throws IOException
 	 *             forward
 	 */
-	public void sendErrorMissingField(Request req, String name) throws IOException {
+	protected void sendErrorMissingField(Request req, String name) throws IOException {
 		// Log
 		req.logger
 		.debug("Failed to send field=" + name);
 		// Sends back the error
 		req.sendError(name);
+	}
+	
+	// Method to simpler get an array
+	protected RequestCheck[] of(RequestCheck...checks) {
+		return checks;
 	}
 }
