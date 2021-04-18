@@ -14,6 +14,14 @@ import de.noahalbers.plca.backend.server.reqeusts.checks.RequestChecks;
 
 public class AdminGetProfileRequest extends RequestHandler{
 	
+	/**
+	 * Responses:
+	 * 	Errors:
+	 * 		unknown: an unknown error occurred. This should not happen. Please try again.	
+	 * 
+	 * 	Success: Loadable json-object with all values from ENTRY_LIST
+	 */
+	
 	private static final String[] ENTRY_LIST = {
 		AdminEntity.ID,
 		AdminEntity.AUTH_CODE,
@@ -34,10 +42,13 @@ public class AdminGetProfileRequest extends RequestHandler{
 
 	@Override
 	public void execute(Request request) throws IOException {
-		// Will holds the full admin
-		JSONObject admJson = new JSONObject();
 		try {
+			// Gets the admin
+			JSONObject admJson = new JSONObject();
 			request.getAdmin().get().save(admJson, ENTRY_LIST);
+			
+			// Send the response
+			request.sendResponse(admJson);
 		} catch (EntitySaveException e) {
 			this.sendErrorUnknownException(request, e);
 			return;
