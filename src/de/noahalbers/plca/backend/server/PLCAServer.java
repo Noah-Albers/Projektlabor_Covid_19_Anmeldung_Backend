@@ -15,8 +15,15 @@ import de.noahalbers.plca.backend.server.reqeusts.handlers.GetStatusRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.GrabUsersRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.LoginRFIDRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.LoginRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.LogoutAllRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.LogoutRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.RegisterUserRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminAuthcodeRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminEditUserReqeust;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminFreezeSelfRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminGetProfileRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminGrabUserRequest;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminInfectedContactsReqeust;
 import de.noahalbers.plca.backend.server.socket.PLCAConnection;
 
 public class PLCAServer extends Thread{
@@ -43,6 +50,14 @@ public class PLCAServer extends Thread{
 		put(3,new LogoutRequest());
 		put(4,new RegisterUserRequest());
 		put(5,new LoginRFIDRequest());
+		put(6,new GetStatusRequest());
+		put(7,new LogoutAllRequest());
+		put(8,new AdminAuthcodeRequest());
+		put(9,new AdminEditUserReqeust());
+		put(10,new AdminFreezeSelfRequest());
+		put(11,new AdminGetProfileRequest());
+		put(12,new AdminGrabUserRequest());
+		put(13,new AdminInfectedContactsReqeust());
 	}};
 	
 	public PLCAServer() throws IOException {
