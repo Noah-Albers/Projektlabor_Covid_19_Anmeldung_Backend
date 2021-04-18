@@ -19,7 +19,7 @@ public final class RequestChecks {
 	 * 	auth.invalid: The given authcode is not valid
 	 * 	auth.expired: The authcode is valid but the authcode is expired
 	 */
-	public static RequestCheck ADMIN_AUTH_CODE = req->{
+	public static RequestCheck CHECK_ADMIN_AUTH_CODE = req->{
 		
 		// Gets the auth code
 		Long authCode = req.getFromMessage("auth", Long.class);
@@ -58,7 +58,7 @@ public final class RequestChecks {
 	 * Response:
 	 * 	auth.frozen: The account that is request is frozen. The request can only be performed by an unfrozen account
 	 */
-	public static RequestCheck ADMIN_NOT_FROZEN = req->{
+	public static RequestCheck CHECK_ADMIN_NOT_FROZEN = req->{
 		// Checks if the the account is frozen
 		if(req.getAdmin().get().isFrozen) {
 			req.logger.debug("Account is frozen");
@@ -66,5 +66,23 @@ public final class RequestChecks {
 			return false;
 		}
 		return true;
+	};
+	
+	/**
+	 * Returns true if no admin is requesting otherwise performs an not frozen check
+	 */
+	public static RequestCheck IF_ADMIN_CHECK_NOT_FROZEN = req->{
+		return req.getAdmin().isPresent() ?
+				CHECK_ADMIN_NOT_FROZEN.checkRequest(req) :
+				true;
+	};
+
+	/**
+	 * Returns true if no admin is requesting otherwise performs an auth check
+	 */
+	public static RequestCheck IF_ADMIN_CHECK_AUTH_CODE = req->{
+		return req.getAdmin().isPresent() ?	
+			CHECK_ADMIN_AUTH_CODE.checkRequest(req) : 
+			true;
 	};
 }

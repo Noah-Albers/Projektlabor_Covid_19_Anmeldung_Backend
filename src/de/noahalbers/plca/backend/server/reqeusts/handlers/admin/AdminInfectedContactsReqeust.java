@@ -54,8 +54,8 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 	@Override
 	public RequestCheck[] getChecks() {
 		return of(
-			RequestChecks.ADMIN_AUTH_CODE,
-			RequestChecks.ADMIN_NOT_FROZEN
+			RequestChecks.CHECK_ADMIN_AUTH_CODE,
+			RequestChecks.CHECK_ADMIN_NOT_FROZEN
 		);
 	}
 	

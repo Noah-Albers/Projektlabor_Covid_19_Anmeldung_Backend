@@ -33,7 +33,7 @@ public class AdminGetProfileRequest extends RequestHandler{
 	@Override
 	public RequestCheck[] getChecks() {
 		return of(
-			RequestChecks.ADMIN_AUTH_CODE
+			RequestChecks.CHECK_ADMIN_AUTH_CODE
 		);
 	}
 	
