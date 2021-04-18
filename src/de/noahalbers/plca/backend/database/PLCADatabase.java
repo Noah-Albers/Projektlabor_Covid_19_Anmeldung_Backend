@@ -167,19 +167,44 @@ public class PLCADatabase {
 			ps.execute();
 		}
 	}
-	
+
+	/**
+	 * Freezes an admin's account
+	 * 
+	 * @param con
+	 *            the connection to use
+	 * @param adminId
+	 *            the id of the admin of which the account should be frozen
+	 * @throws SQLException
+	 *             if anything went wrong with the database
+	 */
+	public void freezeAdminAccount(Connection con, int adminId) throws SQLException {
+		try (PreparedStatement ps = con
+				.prepareStatement("UPDATE `admin` SET `" + AdminEntity.IS_FROZEN + "`=`1` WHERE`id`=?;")) {
+			// Set the value
+			ps.setInt(1, adminId);
+
+			// Executes the update
+			ps.executeUpdate();
+		}
+	}
+
 	/**
 	 * Updates the user on the database
 	 * 
-	 * @param con the connection to use
-	 * @param entity the user with the updates (Id will be used to select the user)
-	 * @throws SQLException if anything went wrong with the connection
-	 * @throws EntitySaveException this error should not occurre
+	 * @param con
+	 *            the connection to use
+	 * @param entity
+	 *            the user with the updates (Id will be used to select the user)
+	 * @throws SQLException
+	 *             if anything went wrong with the connection
+	 * @throws EntitySaveException
+	 *             this error should not occurre
 	 */
-	public void updateUser(Connection con, UserEntity entity) throws SQLException, EntitySaveException{
+	public void updateUser(Connection con, UserEntity entity) throws SQLException, EntitySaveException {
 		// Prepares the query
-		try (PreparedStatement ps = con.prepareStatement(
-				this.getUpdateQuery("user", SimpleUserEntity.ID, UserEntity.DB_ENTRY_LIST))) {
+		try (PreparedStatement ps = con
+				.prepareStatement(this.getUpdateQuery("user", SimpleUserEntity.ID, UserEntity.DB_ENTRY_LIST))) {
 			// Inserts the values
 			entity.save(ps, UserEntity.DB_ENTRY_LIST);
 			// Inserts the primary value
@@ -215,78 +240,92 @@ public class PLCADatabase {
 			ps.execute();
 		}
 	}
-	
-	
-	// Uses by getContactInfosForUser to determin what infos are required and optional
-	private static String[] REQUIRED_CONTACT_ENTITYS = { UserEntity.ID,UserEntity.FIRSTNAME, UserEntity.LASTNAME, UserEntity.POSTAL_CODE, UserEntity.LOCATION, UserEntity.STREET,UserEntity.HOUSE_NUMBER};
-	private static String[] OPTIONAL_CONTACT_ENTITYS = {UserEntity.EMAIL, UserEntity.TELEPHONE};
+
+	// Uses by getContactInfosForUser to determin what infos are required and
+	// optional
+	private static String[] REQUIRED_CONTACT_ENTITYS = { UserEntity.ID, UserEntity.FIRSTNAME, UserEntity.LASTNAME,
+			UserEntity.POSTAL_CODE, UserEntity.LOCATION, UserEntity.STREET, UserEntity.HOUSE_NUMBER };
+	private static String[] OPTIONAL_CONTACT_ENTITYS = { UserEntity.EMAIL, UserEntity.TELEPHONE };
 
 	/**
-	 * Searches all contacts and contact-infos (time and date) from the database that a user had contact with
-	 * @param con - the connection to use
-	 * @param userid - the id of the infected user.
-	 * @param afterDate - the date that shall be used to determine old entry's. Contacts before this date wont be counted
-	 * @param marginTime - the amount of time (minutes) that should be added as a margin to the logout time of a user as the time where the aerosols are still present
-	 * @return a list with users that had contact and a list for every user with their corresponding contact times (contact infos)
-	 * @throws SQLException if anything went wrong with the connection
+	 * Searches all contacts and contact-infos (time and date) from the database
+	 * that a user had contact with
+	 * 
+	 * @param con
+	 *            - the connection to use
+	 * @param userid
+	 *            - the id of the infected user.
+	 * @param afterDate
+	 *            - the date that shall be used to determine old entry's. Contacts
+	 *            before this date wont be counted
+	 * @param marginTime
+	 *            - the amount of time (minutes) that should be added as a margin to
+	 *            the logout time of a user as the time where the aerosols are still
+	 *            present
+	 * @return a list with users that had contact and a list for every user with
+	 *         their corresponding contact times (contact infos)
+	 * @throws SQLException
+	 *             if anything went wrong with the connection
 	 */
-	public Map<UserEntity, List<ContactInfoEntity>> getContactInfosForUser(Connection con, int userid,Timestamp afterDate,int marginTime)
-			throws SQLException {
-		
+	public Map<UserEntity, List<ContactInfoEntity>> getContactInfosForUser(Connection con, int userid,
+			Timestamp afterDate, int marginTime) throws SQLException {
+
 		// Map holds all users with their contacts
-		Map<UserEntity,List<ContactInfoEntity>> users = new HashMap<UserEntity, List<ContactInfoEntity>>();
-		
-		// If anything went wrong while asyncly requesting the users this value will be set
+		Map<UserEntity, List<ContactInfoEntity>> users = new HashMap<UserEntity, List<ContactInfoEntity>>();
+
+		// If anything went wrong while asyncly requesting the users this value will be
+		// set
 		AtomicReference<Exception> optError = new AtomicReference<>();
-		
+
 		// Received user are stored here
-		Map<UserEntity,List<ContactInfoEntity>> grabbedUsers = new HashMap<>();
+		Map<UserEntity, List<ContactInfoEntity>> grabbedUsers = new HashMap<>();
 		// Received contact-infos are stored here
 		List<ContactInfoEntity> grabbedInfos = new ArrayList<>();
-		
+
 		// Prepares the threaded runnable to grab all users that had contact
-		Runnable userSelection = ()->{
+		Runnable userSelection = () -> {
 			// Prepares the query to get all infected users
-			try(PreparedStatement ps = con.prepareStatement(
-					"SELECT DISTINCT u.id, u.firstname, u.lastname, u.postalcode, u.location, u.street, u.housenumber, u.telephone, u.email FROM timespent i JOIN timespent c ON i.userid != c.userid AND ADDTIME(CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END, ? ) >= c.start AND i.start <=( CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) JOIN user u ON u.id=c.userid WHERE i.userid = ? AND i.stop > ?;")){
+			try (PreparedStatement ps = con.prepareStatement(
+					"SELECT DISTINCT u.id, u.firstname, u.lastname, u.postalcode, u.location, u.street, u.housenumber, u.telephone, u.email FROM timespent i JOIN timespent c ON i.userid != c.userid AND ADDTIME(CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END, ? ) >= c.start AND i.start <=( CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) JOIN user u ON u.id=c.userid WHERE i.userid = ? AND i.stop > ?;")) {
 				// Sets the values
-				ps.setInt(1, marginTime*60);
+				ps.setInt(1, marginTime * 60);
 				ps.setInt(2, userid);
 				ps.setTimestamp(3, afterDate);
-				
+
 				// Executes the query
 				ResultSet res = ps.executeQuery();
-				
+
 				// Loads all passed entitys
-				while(res.next()) {
+				while (res.next()) {
 					// Creates the user
 					UserEntity user = new UserEntity();
 					// Loads the users values
-					user.load(res, REQUIRED_CONTACT_ENTITYS,OPTIONAL_CONTACT_ENTITYS);
+					user.load(res, REQUIRED_CONTACT_ENTITYS, OPTIONAL_CONTACT_ENTITYS);
 					// Adds the user
 					grabbedUsers.put(user, new ArrayList<>());
 				}
-			}catch(SQLException|EntityLoadException e) {
+			} catch (SQLException | EntityLoadException e) {
 				// Passes on the error
 				optError.set(e);
 			}
 		};
 
-		// Prepares the threaded runnable to grab all contact infos for the time a user had contact with another user
-		Runnable contactSelection = ()->{
+		// Prepares the threaded runnable to grab all contact infos for the time a user
+		// had contact with another user
+		Runnable contactSelection = () -> {
 			// Prepares the query to grab all contact infos
 			try (PreparedStatement ps = con.prepareStatement(
 					"SELECT i.start AS 'istart', (CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END) AS 'istop', c.userid AS 'cid', c.start AS 'cstart', (CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) AS 'cStop' FROM timespent i JOIN timespent c ON i.userid != c.userid AND ADDTIME(CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END, ?) >= c.start AND i.start <= (CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) WHERE i.userid = ? AND i.stop > ?;")) {
 				// Sets the values
-				ps.setInt(1, marginTime*60);
+				ps.setInt(1, marginTime * 60);
 				ps.setInt(2, userid);
 				ps.setTimestamp(3, afterDate);
-				
+
 				// Executes the query
 				ResultSet res = ps.executeQuery();
-				
+
 				// Interprets the values
-				while(res.next()) {
+				while (res.next()) {
 					// Creates the user
 					ContactInfoEntity user = new ContactInfoEntity();
 					// Loads the users values
@@ -294,47 +333,48 @@ public class PLCADatabase {
 					// Adds the user
 					grabbedInfos.add(user);
 				}
-			}catch(SQLException | EntityLoadException e) {
+			} catch (SQLException | EntityLoadException e) {
 				optError.set(e);
 			}
 		};
-		
+
 		// Creates the threads
 		Thread userThread = new Thread(userSelection);
 		Thread contactThread = new Thread(contactSelection);
-		
+
 		// Starts the threads
 		userThread.start();
 		contactThread.start();
-		
+
 		// Waits for both threads to finish
 		try {
 			userThread.join();
 			contactThread.join();
-		} catch (InterruptedException e) {}
-		
+		} catch (InterruptedException e) {
+		}
+
 		// Gets a possible error
 		Exception ex = optError.get();
-		
+
 		// Check if an error occurred
-		if(ex != null)
-			throw ex instanceof SQLException ? (SQLException)ex : new SQLException(ex);
-			
+		if (ex != null)
+			throw ex instanceof SQLException ? (SQLException) ex : new SQLException(ex);
+
 		// Gets the users as a keyset
 		Set<UserEntity> rawUsers = grabbedUsers.keySet();
-		
+
 		try {
 			// Iterates over all contact-infos
-			grabbedInfos.forEach(i->{
+			grabbedInfos.forEach(i -> {
 				// Searches the user with the corresponding user-id (for the contact)
-				UserEntity contact = rawUsers.stream().filter(x->x.id==i.contactID).findFirst().get();
+				UserEntity contact = rawUsers.stream().filter(x -> x.id == i.contactID).findFirst().get();
 				// Appends the contact-info
 				users.get(contact).add(i);
 			});
-		}catch(Exception e) {
+		} catch (Exception e) {
 			throw new SQLException(e);
 		}
-		
+
 		return users;
 	}
 
@@ -537,33 +577,37 @@ public class PLCADatabase {
 		}
 
 	}
-	
+
 	/**
 	 * Gets a user by his id
-	 * @param con the connection to use
-	 * @param userId the id of the user
+	 * 
+	 * @param con
+	 *            the connection to use
+	 * @param userId
+	 *            the id of the user
 	 * @return the user if pressent; otherwise empty
-	 * @throws SQLException if anything went wrong with the connection
+	 * @throws SQLException
+	 *             if anything went wrong with the connection
 	 */
-	public Optional<UserEntity> getUser(Connection con,int userId) throws SQLException{
-		
+	public Optional<UserEntity> getUser(Connection con, int userId) throws SQLException {
+
 		// Prepares the query
-		try(PreparedStatement ps = con.prepareStatement("SELECT * FROM user WHERE `id`=?;")){
+		try (PreparedStatement ps = con.prepareStatement("SELECT * FROM user WHERE `id`=?;")) {
 			// Sets the values
 			ps.setInt(1, userId);
-			
+
 			// Executes the query
 			ResultSet res = ps.executeQuery();
-			
+
 			// Checks if no user got found
-			if(!res.next())
+			if (!res.next())
 				return Optional.empty();
-			
+
 			try {
 				// Parses the user
 				UserEntity user = new UserEntity();
 				user.load(res, UserEntity.DB_ENTRY_LIST);
-				
+
 				return Optional.of(user);
 			} catch (EntityLoadException e) {
 				throw new SQLException(e);
@@ -654,7 +698,8 @@ public class PLCADatabase {
 	 *         user and an empty value on the tuple (user;null); if both are found,
 	 *         both (user;timespent)
 	 */
-	public Entry<SimpleUserEntity, TimespentEntity> getSimpleUserByRFID(String rfid, Connection con) throws SQLException {
+	public Entry<SimpleUserEntity, TimespentEntity> getSimpleUserByRFID(String rfid, Connection con)
+			throws SQLException {
 
 		// The user that shall be found
 		SimpleUserEntity user = new SimpleUserEntity();

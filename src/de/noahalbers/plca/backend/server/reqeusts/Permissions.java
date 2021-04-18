@@ -8,5 +8,5 @@ public class Permissions {
 			ADMIN = 0b10,				// This user is a verified admin that is allowed to modify and access critical
 										// user info
 			RESET_ADMIN = 0b100,		// This user is verified to reset an admins key and account
-			EVERYONE = ~0;					// Everyone is allowed to use the request with this permission
+			EVERYONE = ~0;				// Everyone is allowed to use the request with this permission
 }
