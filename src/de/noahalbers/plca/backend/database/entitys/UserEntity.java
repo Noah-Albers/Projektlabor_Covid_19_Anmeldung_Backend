@@ -1,16 +1,15 @@
 package de.noahalbers.plca.backend.database.entitys;
 
 import java.lang.reflect.Field;
-import java.sql.Timestamp;
+import java.sql.Date;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import de.noahalbers.plca.backend.util.Nullable;
 
 import org.json.JSONObject;
 
 import de.noahalbers.plca.backend.database.EntityInfo;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
+import de.noahalbers.plca.backend.util.Nullable;
 
 public class UserEntity extends SimpleUserEntity {
 
@@ -52,11 +51,11 @@ public class UserEntity extends SimpleUserEntity {
 	@EntityInfo(AUTODELETE)
 	public Boolean autodeleteaccount;
 	@EntityInfo(REGISTER_DATE)
-	public Timestamp createdate;
+	public Date createdate;
 
 	public UserEntity() {}
 
-	public UserEntity(Integer id, String firstname, String lastname,Integer postalCode, String location, String street, String housenumber, Boolean autodeleteaccount, Timestamp createdate) {
+	public UserEntity(Integer id, String firstname, String lastname,Integer postalCode, String location, String street, String housenumber, Boolean autodeleteaccount, Date createdate) {
 		super(id, firstname, lastname);
 		this.postalCode = postalCode;
 		this.location = location;

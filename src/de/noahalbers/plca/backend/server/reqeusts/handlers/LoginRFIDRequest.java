@@ -50,7 +50,7 @@ public class LoginRFIDRequest extends RequestHandler{
 		
 		try {
 			// Tries to get the user and timespent
-			Entry<SimpleUserEntity, TimespentEntity> res = this.database.getUserByRFID(rfid, request.startDatabaseConnection());
+			Entry<SimpleUserEntity, TimespentEntity> res = this.database.getSimpleUserByRFID(rfid, request.startDatabaseConnection());
 			
 			// Checks if the user could not be found
 			if(res.getKey() == null) {

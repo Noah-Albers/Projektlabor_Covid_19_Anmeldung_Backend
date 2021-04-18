@@ -32,7 +32,7 @@ public class GrabUsersRequest extends RequestHandler{
 	public void execute(Request request) throws IOException {
 		try {
 			// Grabs all user profiles (Simple profiles)
-			SimpleUserEntity[] dbUsers = this.database.getSimpleUsersFromDatabase(request.startDatabaseConnection());
+			SimpleUserEntity[] dbUsers = this.database.getSimpleUsers(request.startDatabaseConnection());
 			
 			// Will hold all users
 			JSONObject jsonUsers = new JSONObject() {{

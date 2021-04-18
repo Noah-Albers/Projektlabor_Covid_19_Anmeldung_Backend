@@ -528,7 +528,7 @@ public class PLCADatabase {
 	 * @throws SQLException
 	 *             if anything went wrong with the connection
 	 */
-	public SimpleUserEntity[] getSimpleUsersFromDatabase(Connection con) throws SQLException {
+	public SimpleUserEntity[] getSimpleUsers(Connection con) throws SQLException {
 		try (
 				// Starts the statement
 				PreparedStatement query = con.prepareStatement("SELECT id,firstname,lastname FROM user;");
@@ -601,7 +601,7 @@ public class PLCADatabase {
 	 *         user and an empty value on the tuple (user;null); if both are found,
 	 *         both (user;timespent)
 	 */
-	public Entry<SimpleUserEntity, TimespentEntity> getUserByRFID(String rfid, Connection con) throws SQLException {
+	public Entry<SimpleUserEntity, TimespentEntity> getSimpleUserByRFID(String rfid, Connection con) throws SQLException {
 
 		// The user that shall be found
 		SimpleUserEntity user = new SimpleUserEntity();

@@ -1,8 +1,8 @@
 package de.noahalbers.plca.backend.server.reqeusts.handlers;
 
 import java.io.IOException;
+import java.sql.Date;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 
 import org.json.JSONObject;
 
@@ -67,7 +67,7 @@ public class RegisterUserRequest extends RequestHandler{
 			// Loads the user
 			user.load(m, REGISTER_ENTRYS, OPTIONAL_REGISTER_ENTRYS);
 			// Sets the values
-			user.createdate=new Timestamp(System.currentTimeMillis());
+			user.createdate=new Date(System.currentTimeMillis());
 			
 			// Checks if an error appeared
 			this.database.registerUser(request.startDatabaseConnection(), user);
