@@ -517,6 +517,39 @@ public class PLCADatabase {
 		}
 
 	}
+	
+	/**
+	 * Gets a user by his id
+	 * @param con the connection to use
+	 * @param userId the id of the user
+	 * @return the user if pressent; otherwise empty
+	 * @throws SQLException if anything went wrong with the connection
+	 */
+	public Optional<UserEntity> getUser(Connection con,int userId) throws SQLException{
+		
+		// Prepares the query
+		try(PreparedStatement ps = con.prepareStatement("SELECT * FROM user WHERE `id`=?;")){
+			// Sets the values
+			ps.setInt(1, userId);
+			
+			// Executes the query
+			ResultSet res = ps.executeQuery();
+			
+			// Checks if no user got found
+			if(!res.next())
+				return Optional.empty();
+			
+			try {
+				// Parses the user
+				UserEntity user = new UserEntity();
+				user.load(res, UserEntity.DB_ENTRY_LIST);
+				
+				return Optional.of(user);
+			} catch (EntityLoadException e) {
+				throw new SQLException(e);
+			}
+		}
+	}
 
 	/**
 	 * Grabs all users (Simplified profiles) from the database
