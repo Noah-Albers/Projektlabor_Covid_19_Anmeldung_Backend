@@ -1,4 +1,4 @@
-package de.noahalbers.plca.backend.server.reqeusts.handlers;
+package de.noahalbers.plca.backend.server.reqeusts.handlers.admin;
 
 import java.io.IOException;
 
