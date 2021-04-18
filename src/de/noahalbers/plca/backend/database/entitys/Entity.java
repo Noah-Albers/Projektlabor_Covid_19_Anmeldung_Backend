@@ -1,11 +1,14 @@
 package de.noahalbers.plca.backend.database.entitys;
 
 import java.lang.reflect.Field;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -23,9 +26,13 @@ public abstract class Entity {
 	private interface Set {
 		public void apply(int id, String name, Object value) throws Exception;
 	}
-
-	public Entity() {
-	}
+	
+	// List of converters that can be used to convert a string to the required data-type (JSON-Sql-Converting fix)
+	@SuppressWarnings("serial")
+	private static Map<Class<?>,Function<String,?>> CONVERTERS = new HashMap<Class<?>, Function<String,?>>(){{
+		put(Date.class,Date::valueOf);
+		put(Timestamp.class,Timestamp::valueOf);
+	}};
 
 	/**
 	 * Gets all entry's for a class. As they can't change at runtime, they should be
@@ -163,10 +170,18 @@ public abstract class Entity {
 				if ((f = entrys.getOrDefault(x, null)) == null)
 					throw new EntityLoadException(false, true, x);
 
+				// Gets the value
+				Object val = supplie.apply(x);
+
+				// Checks if the value is not of the correct type
+				if(val.getClass() != f.getType())
+					// Tries to find a converter and applies it
+					val = CONVERTERS.get(f.getType()).apply(val.toString());
+				
 				// Tries to set the value
 				f.setAccessible(true);
-				f.set(this, supplie.apply(x));
-			} catch (IllegalArgumentException | IllegalAccessException | JSONException e) {
+				f.set(this, val);
+			} catch (Exception e) {
 				throw new EntityLoadException(false, false, x);
 			}
 
@@ -178,9 +193,17 @@ public abstract class Entity {
 				if ((f = entrys.getOrDefault(x, null)) == null)
 					throw new EntityLoadException(true, true, x);
 
+				// Gets the value
+				Object val = supplie.apply(x);
+
+				// Checks if the value is not of the correct type
+				if(val.getClass() != f.getType())
+					// Tries to find a converter and applies it
+					val = CONVERTERS.get(f.getType()).apply(val.toString());
+				
 				// Tries to set the value
 				f.setAccessible(true);
-				f.set(this, supplie.apply(x));
+				f.set(this, val);
 			} catch (Exception e) {
 				throw new EntityLoadException(false, true, x);
 			}
