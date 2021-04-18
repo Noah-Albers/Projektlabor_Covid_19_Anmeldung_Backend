@@ -11,6 +11,8 @@ import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
 import de.noahalbers.plca.backend.server.reqeusts.Permissions;
 import de.noahalbers.plca.backend.server.reqeusts.Request;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
+import de.noahalbers.plca.backend.server.reqeusts.checks.RequestCheck;
+import de.noahalbers.plca.backend.server.reqeusts.checks.RequestChecks;
 
 public class AdminGrabUserRequest extends RequestHandler{
 
@@ -29,6 +31,14 @@ public class AdminGrabUserRequest extends RequestHandler{
 	 * Request:
 	 * 	user: the user-id of the user
 	 */
+	
+	@Override
+	public RequestCheck[] getChecks() {
+		return of(
+			RequestChecks.ADMIN_AUTH_CODE,
+			RequestChecks.ADMIN_NOT_FROZEN
+		);
+	}
 	
 	@Override
 	public int getRequiredPermissions() {
