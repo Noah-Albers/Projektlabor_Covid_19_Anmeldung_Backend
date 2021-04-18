@@ -46,11 +46,11 @@ public class Request {
 	 * Sends a response to the remote client
 	 * 
 	 * @param data
-	 *            the data to send
+	 *            the data to send if null an empty object will be send
 	 * @throws IOException
 	 *             if anything went wrong with the I/O
 	 */
-	public void sendResponse(JSONObject data) throws IOException {
+	public void sendResponse(@Nullable JSONObject data) throws IOException {
 		// Creates the response
 		JSONObject response = new JSONObject() {{
 			// Appends the success status

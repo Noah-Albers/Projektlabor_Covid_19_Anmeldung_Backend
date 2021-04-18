@@ -152,8 +152,7 @@ public class PLCADatabase {
 	 * @throws SQLException
 	 *             if anything went wrong
 	 * @throws EntitySaveException
-	 *             this error should not occurre. If it does something went wrong in
-	 *             the database
+	 *             this error should not occurre
 	 */
 	public void updateAdmin(Connection con, AdminEntity entity) throws SQLException, EntitySaveException {
 		// Prepares the query
@@ -163,6 +162,28 @@ public class PLCADatabase {
 			entity.save(ps, AdminEntity.DB_ENTRY_LIST);
 			// Inserts the primary value
 			ps.setInt(AdminEntity.DB_ENTRY_LIST.length + 1, entity.id);
+
+			// Executes the statement
+			ps.execute();
+		}
+	}
+	
+	/**
+	 * Updates the user on the database
+	 * 
+	 * @param con the connection to use
+	 * @param entity the user with the updates (Id will be used to select the user)
+	 * @throws SQLException if anything went wrong with the connection
+	 * @throws EntitySaveException this error should not occurre
+	 */
+	public void updateUser(Connection con, UserEntity entity) throws SQLException, EntitySaveException{
+		// Prepares the query
+		try (PreparedStatement ps = con.prepareStatement(
+				this.getUpdateQuery("user", SimpleUserEntity.ID, UserEntity.DB_ENTRY_LIST))) {
+			// Inserts the values
+			entity.save(ps, UserEntity.DB_ENTRY_LIST);
+			// Inserts the primary value
+			ps.setInt(UserEntity.DB_ENTRY_LIST.length + 1, entity.id);
 
 			// Executes the statement
 			ps.execute();
@@ -179,8 +200,7 @@ public class PLCADatabase {
 	 * @throws SQLException
 	 *             if anything went wrong
 	 * @throws EntitySaveException
-	 *             this error should not occurre. If it does something went wrong in
-	 *             the database
+	 *             this error should not occurre
 	 */
 	public void updateTimespent(Connection con, TimespentEntity entity) throws SQLException, EntitySaveException {
 		// Prepares the query
