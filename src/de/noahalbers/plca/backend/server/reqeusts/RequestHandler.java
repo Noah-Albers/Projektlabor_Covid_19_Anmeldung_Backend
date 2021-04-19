@@ -5,7 +5,7 @@ import java.sql.SQLException;
 
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.PLCADatabase;
-import de.noahalbers.plca.backend.server.reqeusts.checks.RequestCheck;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionCheck;
 
 public abstract class RequestHandler {
 
@@ -16,17 +16,7 @@ public abstract class RequestHandler {
 	 * All checks that must be performed before the request can be processed
 	 * @return
 	 */
-	public RequestCheck[] getChecks() {
-		return of();
-	}
-	
-	/**
-	 * @return an int that indicates the required permissions to access the request
-	 *         handler. This int is encoded using simple binary or. Used
-	 *         Permission_1 | Permissions_2 to make multiple users be allowed to
-	 *         access the handler.
-	 */
-	public abstract int getRequiredPermissions();
+	public abstract PermissionCheck[] getPermissionChecks();
 
 	/**
 	 * Executes once a request gets received
@@ -94,7 +84,7 @@ public abstract class RequestHandler {
 	}
 	
 	// Method to simpler get an array
-	protected RequestCheck[] of(RequestCheck...checks) {
+	protected PermissionCheck[] of(PermissionCheck...checks) {
 		return checks;
 	}
 }

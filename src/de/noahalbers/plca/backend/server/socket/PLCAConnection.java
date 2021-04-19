@@ -8,10 +8,10 @@ import java.security.PublicKey;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import de.noahalbers.plca.backend.util.Nullable;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -24,12 +24,12 @@ import de.noahalbers.plca.backend.EncryptionManager;
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.database.entitys.AdminEntity;
 import de.noahalbers.plca.backend.logger.Logger;
-import de.noahalbers.plca.backend.server.reqeusts.Permissions;
 import de.noahalbers.plca.backend.server.reqeusts.Request;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
-import de.noahalbers.plca.backend.server.reqeusts.checks.RequestCheck;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionCheck;
 import de.noahalbers.plca.backend.server.socket.exception.PLCAAdminNotFoundException;
 import de.noahalbers.plca.backend.server.socket.exception.PLCAConnectionTimeoutException;
+import de.noahalbers.plca.backend.util.Nullable;
 
 public class PLCAConnection extends Thread {
 
@@ -68,12 +68,13 @@ public class PLCAConnection extends Thread {
 	// The bytes that are required to be send when sending a response
 	@Nullable
 	private byte[] nonceBytes;
-	
-	public PLCAConnection(long connectionID,Socket socket, Consumer<ConnectionStatus> onStatusChange) throws NumberFormatException {
-		this.log = new Logger("PLCAConnection."+connectionID);
-		
+
+	public PLCAConnection(long connectionID, Socket socket, Consumer<ConnectionStatus> onStatusChange)
+			throws NumberFormatException {
+		this.log = new Logger("PLCAConnection." + connectionID);
+
 		this.onStatusChange = onStatusChange;
-		this.socket = new PLCASocket(connectionID,socket, this.plca.getConfig().getUnsafe("connection_timeout"));
+		this.socket = new PLCASocket(connectionID, socket, this.plca.getConfig().getUnsafe("connection_timeout"));
 		this.encryptionManager.init();
 	}
 
@@ -107,42 +108,47 @@ public class PLCAConnection extends Thread {
 					throw new JSONException("Invalid handler got specified.");
 
 			} catch (JSONException e) {
-				this.sendErrorAndClose("handler", ConnectionStatus.DISCONNECTED_NO_HANDLER);
-				return;
-			}
-
-			// Gets the users permissions
-			int perm = this.connectedAdmin == null ? Permissions.DEFAULT_LOGIN : this.connectedAdmin.permissions;
-
-			// Checks if the user does not have the permissions to access the app
-			if ((perm & handler.getRequiredPermissions()) == 0) {
-				this.sendErrorAndClose("auth", ConnectionStatus.DISCONNECTED_PERMISSION);
+				this.sendPreprocessingErrorAndClose("handler", null, ConnectionStatus.DISCONNECTED_NO_HANDLER);
 				return;
 			}
 
 			// The data for the request
-			JSONObject requestData;
+			JSONObject requestData = new JSONObject();
 			try {
 				requestData = pkt.getJSONObject("data");
 			} catch (JSONException e) {
-				requestData = new JSONObject();
+			}
+
+			// An optional auth object
+			JSONObject auth = new JSONObject();
+			try {
+				auth = pkt.getJSONObject("auth");
+			} catch (JSONException e) {
 			}
 
 			// Creates the request
-			request = new Request(this.socket.getConnectionId(), requestData, this::sendPacket, this::receivePacket, this.dbconnection,
-					this.connectedAdmin);
+			request = new Request(this.socket.getConnectionId(), requestData, auth, this::sendPacket,
+					this::receivePacket, this.dbconnection, this.connectedAdmin);
 
 			// Checks that all permissions are given
-			for(RequestCheck check : handler.getChecks())
-				if(!check.checkRequest(request))
+			for (PermissionCheck check : handler.getPermissionChecks()) {
+				// Performs permission checks
+				Entry<String, JSONObject> result = check.checkRequest(request);
+
+				// Checks if the check failed
+				if (result != null) {
+					this.sendPreprocessingErrorAndClose(result.getKey(), result.getValue(),
+							ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 					return;
-			
+				}
+			}
+
 			// Executes the handler
 			handler.execute(request);
 
 			// Log
 			this.log.debug("Got completed successfully. Disconnecting...");
-			
+
 			// Ends the connection
 			this.killConnection(ConnectionStatus.DISCONNECTED_SUCCESS);
 		} catch (IOException e) {
@@ -167,13 +173,13 @@ public class PLCAConnection extends Thread {
 			short clientId = this.socket.readUByte();
 
 			// Logs
-			this.log.debug("Received clientid").critical("ID="+clientId);
+			this.log.debug("Received clientid").critical("ID=" + clientId);
 
 			// Receives the nonce
 			this.nonceBytes = this.socket.readXBytes(8);
-			
-			this.log.debug("Received nonce").critical("Nonce="+Arrays.toString(this.nonceBytes));
-			
+
+			this.log.debug("Received nonce").critical("Nonce=" + Arrays.toString(this.nonceBytes));
+
 			// Gets the remote rsa-public key
 			PublicKey remoteKey = this.getKeyAndPrepare(clientId);
 
@@ -248,7 +254,7 @@ public class PLCAConnection extends Thread {
 		this.dbconnection = this.plca.getDatabase().startConnection();
 
 		// Gets the logged in admin
-		Optional<AdminEntity> adm = this.plca.getDatabase().getAdminById(1, this.dbconnection);
+		Optional<AdminEntity> adm = this.plca.getDatabase().getAdminById(id, this.dbconnection);
 
 		// Checks if the admin account got found
 		if (!adm.isPresent())
@@ -263,22 +269,28 @@ public class PLCAConnection extends Thread {
 	}
 
 	/**
-	 * Sends a packet with an except tag (Indicates an error in the pre-processing)
+	 * Sends a packet with an pre-processing error
 	 * 
-	 * @param status the status that should be used to send the connection
+	 * @param status
+	 *            the status that should be used to send the connection
 	 * @param error
 	 *            the error string
+	 * @param data
+	 *            extra data that can optionally be passed with the error message
 	 * @throws IOException
 	 *             if anything went wrong
 	 */
-	private void sendErrorAndClose(String error, ConnectionStatus status) throws IOException {
+	private void sendPreprocessingErrorAndClose(String error, @Nullable JSONObject data, ConnectionStatus status)
+			throws IOException {
 		// Log
-		this.log.debug("Failed in pre-processing").critical("Error="+error+" Status="+status);
-		
-		// Sends an packet with an except-tag (Error
+		this.log.debug("Failed in pre-processing").critical("Error=" + error + " Status=" + status);
+
+		// Sends an packet the error
 		this.sendPacket(new JSONObject() {
 			{
-				put("except", error);
+				put("status", 2);
+				put("error", error);
+				put("data",data == null ? new JSONObject() : data);
 			}
 		});
 
@@ -345,16 +357,13 @@ public class PLCAConnection extends Thread {
 		try {
 			// Gets the raw packet bytes
 			byte[] rawPkt = data.toString().getBytes(StandardCharsets.UTF_8);
-			
+
 			// Combines the nonce bytes and the data from the jobject
-			byte[] finPkt = ByteBuffer
-			.allocate(rawPkt.length+this.nonceBytes.length)
-			.put(this.nonceBytes)
-			.put(rawPkt)
-			.array();
-			
+			byte[] finPkt = ByteBuffer.allocate(rawPkt.length + this.nonceBytes.length).put(this.nonceBytes).put(rawPkt)
+					.array();
+
 			// Tries to encrypt the message
-			Optional<byte[]> optEnc = this.encryptionManager .encryptAES(finPkt, this.aesKey, this.aesIv);
+			Optional<byte[]> optEnc = this.encryptionManager.encryptAES(finPkt, this.aesKey, this.aesIv);
 
 			// Checks if the encryption failed
 			if (!optEnc.isPresent())

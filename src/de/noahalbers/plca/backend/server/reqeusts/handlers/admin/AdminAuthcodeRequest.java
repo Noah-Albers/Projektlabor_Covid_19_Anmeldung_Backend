@@ -13,9 +13,10 @@ import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.config.Config;
 import de.noahalbers.plca.backend.database.entitys.AdminEntity;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
-import de.noahalbers.plca.backend.server.reqeusts.Permissions;
 import de.noahalbers.plca.backend.server.reqeusts.Request;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionCheck;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionChecks;
 
 public class AdminAuthcodeRequest extends RequestHandler {
 	
@@ -47,12 +48,6 @@ public class AdminAuthcodeRequest extends RequestHandler {
 		EMAIL_SUBJECT = cfg.getUnsafe("admin_auth_email_subject");
 	}
 	
-	
-	@Override
-	public int getRequiredPermissions() {
-		return Permissions.ADMIN;
-	}
-
 	@Override
 	public void execute(Request request) throws IOException {
 		// Gets the admin
@@ -87,6 +82,11 @@ public class AdminAuthcodeRequest extends RequestHandler {
 		
 		// Sends the successful reset of the code
 		request.sendResponse(new JSONObject());
+	}
+
+	@Override
+	public PermissionCheck[] getPermissionChecks() {
+		return of(PermissionChecks.PERM_ADMIN);
 	}
 
 }

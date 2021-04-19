@@ -7,11 +7,10 @@ import de.noahalbers.plca.backend.database.entitys.SimpleUserEntity;
 import de.noahalbers.plca.backend.database.entitys.UserEntity;
 import de.noahalbers.plca.backend.database.exceptions.EntityLoadException;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
-import de.noahalbers.plca.backend.server.reqeusts.Permissions;
 import de.noahalbers.plca.backend.server.reqeusts.Request;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
-import de.noahalbers.plca.backend.server.reqeusts.checks.RequestCheck;
-import de.noahalbers.plca.backend.server.reqeusts.checks.RequestChecks;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionCheck;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionChecks;
 
 public class AdminEditUserReqeust extends RequestHandler{
 
@@ -49,15 +48,11 @@ public class AdminEditUserReqeust extends RequestHandler{
 	};
 	
 	@Override
-	public int getRequiredPermissions() {
-		return Permissions.ADMIN;
-	}
-	
-	@Override
-	public RequestCheck[] getChecks() {
+	public PermissionCheck[] getPermissionChecks() {
 		return of(
-			RequestChecks.CHECK_ADMIN_AUTH_CODE,
-			RequestChecks.CHECK_ADMIN_NOT_FROZEN
+			PermissionChecks.PERM_ADMIN,
+			PermissionChecks.CHECK_ADMIN_AUTH_CODE,
+			PermissionChecks.CHECK_ADMIN_NOT_FROZEN
 		);
 	}
 

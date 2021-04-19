@@ -9,11 +9,10 @@ import com.mysql.cj.xdevapi.JsonArray;
 
 import de.noahalbers.plca.backend.database.entitys.SimpleUserEntity;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
-import de.noahalbers.plca.backend.server.reqeusts.Permissions;
 import de.noahalbers.plca.backend.server.reqeusts.Request;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
-import de.noahalbers.plca.backend.server.reqeusts.checks.RequestCheck;
-import de.noahalbers.plca.backend.server.reqeusts.checks.RequestChecks;;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionCheck;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionChecks;;
 
 public class GrabUsersRequest extends RequestHandler{
 
@@ -64,16 +63,11 @@ public class GrabUsersRequest extends RequestHandler{
 	}
 
 	@Override
-	public RequestCheck[] getChecks() {
+	public PermissionCheck[] getPermissionChecks() {
 		return of(
-			RequestChecks.IF_ADMIN_CHECK_AUTH_CODE,
-			RequestChecks.IF_ADMIN_CHECK_NOT_FROZEN
+			PermissionChecks.IF_ADMIN_CHECK_AUTH_CODE,
+			PermissionChecks.IF_ADMIN_CHECK_NOT_FROZEN
 		);
-	}
-	
-	@Override
-	public int getRequiredPermissions() {
-		return Permissions.EVERYONE;
 	}
 
 }

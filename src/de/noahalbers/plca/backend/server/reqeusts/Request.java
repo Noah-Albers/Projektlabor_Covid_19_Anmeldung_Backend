@@ -29,10 +29,13 @@ public class Request {
 	// The json message that got send
 	private JSONObject message;
 	
+	// The json auth-object that got send
+	private JSONObject authObject;
+	
 	// Logger
 	public final Logger logger;
 
-	public Request(long requestID,JSONObject message, PacketSender doSend, PacketReceiver doReceive, @Nullable Connection dbConnection,
+	public Request(long requestID,JSONObject message,JSONObject authObject, PacketSender doSend, PacketReceiver doReceive, @Nullable Connection dbConnection,
 			@Nullable AdminEntity admin) {
 		this.logger = new Logger("Request."+requestID);
 		this.message = message;
@@ -54,7 +57,7 @@ public class Request {
 		// Creates the response
 		JSONObject response = new JSONObject() {{
 			// Appends the success status
-			this.accumulate("status", 1);
+			this.accumulate("status", 0);
 			// Appends the data
 			this.accumulate("data", data == null ? new JSONObject() : data);
 		}};
@@ -78,14 +81,11 @@ public class Request {
 		JSONObject response = new JSONObject() {
 			{
 				// Appends the error status
-				this.accumulate("status", 0);
+				this.put("status", 2);
 				// Appends the error status
-				this.accumulate("errorcode", code);
-
-				// Checks if additional infos got parsed
-				if (infos != null)
-					// Appends the error infos
-					this.accumulate("data", infos);
+				this.put("error", code);
+				// Appends the error infos
+				this.put("data", infos == null ? new JSONObject() : infos);
 			}
 		};
 
@@ -119,7 +119,28 @@ public class Request {
 	public JSONObject getMessage() {
 		return this.message;
 	}
+	
+	public JSONObject getAuthObject() {
+		return this.authObject;
+	}
 
+	/**
+	 * Gets an object from the provided auth-object
+	 * 
+	 * @param key
+	 *            the key for the object
+	 * @return the object if provided; null if either no object got provided or the
+	 *         object had the wrong data-type
+	 */
+	@Nullable
+	public <T> T getFromAuth(String key,Class<T> classOf) {
+		try {
+			return classOf.cast(this.authObject.get(key));
+		}catch(Exception e) {
+			return null;
+		}
+	}
+	
 	/**
 	 * Gets an object from the provided message
 	 * 

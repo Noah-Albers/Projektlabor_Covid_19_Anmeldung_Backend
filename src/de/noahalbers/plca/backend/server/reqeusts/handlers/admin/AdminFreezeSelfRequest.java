@@ -3,11 +3,10 @@ package de.noahalbers.plca.backend.server.reqeusts.handlers.admin;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import de.noahalbers.plca.backend.server.reqeusts.Permissions;
 import de.noahalbers.plca.backend.server.reqeusts.Request;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
-import de.noahalbers.plca.backend.server.reqeusts.checks.RequestCheck;
-import de.noahalbers.plca.backend.server.reqeusts.checks.RequestChecks;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionCheck;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionChecks;
 
 public class AdminFreezeSelfRequest extends RequestHandler{
 
@@ -20,18 +19,14 @@ public class AdminFreezeSelfRequest extends RequestHandler{
 	 */
 	
 	@Override
-	public RequestCheck[] getChecks() {
+	public PermissionCheck[] getPermissionChecks() {
 		return of(
-			RequestChecks.CHECK_ADMIN_AUTH_CODE,
-			RequestChecks.CHECK_ADMIN_NOT_FROZEN
+			PermissionChecks.PERM_ADMIN,
+			PermissionChecks.CHECK_ADMIN_AUTH_CODE,
+			PermissionChecks.CHECK_ADMIN_NOT_FROZEN
 		);
 	}
 	
-	@Override
-	public int getRequiredPermissions() {
-		return Permissions.ADMIN;
-	}
-
 	@Override
 	public void execute(Request request) throws IOException {
 		try {

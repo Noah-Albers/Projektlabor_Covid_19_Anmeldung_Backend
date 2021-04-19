@@ -10,9 +10,10 @@ import de.noahalbers.plca.backend.database.entitys.UserEntity;
 import de.noahalbers.plca.backend.database.exceptions.DuplicatedEntryException;
 import de.noahalbers.plca.backend.database.exceptions.EntityLoadException;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
-import de.noahalbers.plca.backend.server.reqeusts.Permissions;
 import de.noahalbers.plca.backend.server.reqeusts.Request;
 import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionCheck;
+import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionChecks;
 
 public class RegisterUserRequest extends RequestHandler{
 	
@@ -52,8 +53,8 @@ public class RegisterUserRequest extends RequestHandler{
 	};
 	
 	@Override
-	public int getRequiredPermissions() {
-		return Permissions.DEFAULT_LOGIN;
+	public PermissionCheck[] getPermissionChecks() {
+		return of(PermissionChecks.PERM_DEFAULT_LOGIN);
 	}
 
 	@Override
