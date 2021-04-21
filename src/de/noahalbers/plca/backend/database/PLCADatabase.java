@@ -162,7 +162,7 @@ public class PLCADatabase {
 			entity.save(ps, AdminEntity.ATTRIBUTE_LIST);
 			// Inserts the primary value
 			ps.setInt(AdminEntity.ATTRIBUTE_LIST.length + 1, entity.id);
-
+			
 			// Executes the statement
 			ps.execute();
 		}
@@ -618,7 +618,7 @@ public class PLCADatabase {
 				try {
 					// Parses the user
 					UserEntity user = new UserEntity();
-					user.load(res, UserEntity.OPTIONAL_ATTRIBUTE_LIST,UserEntity.REQUIRED_ATTRIBUTE_LIST);
+					user.load(res,UserEntity.REQUIRED_ATTRIBUTE_LIST,UserEntity.OPTIONAL_ATTRIBUTE_LIST);
 					
 					return Optional.of(user);
 				} catch (EntityLoadException e) {
@@ -691,7 +691,7 @@ public class PLCADatabase {
 				// Creates an admin entity
 				AdminEntity adm = new AdminEntity();
 				// Loads all values from the result set
-				adm.load(res, AdminEntity.OPTIONAL_ATTRIBUTE_LIST,AdminEntity.REQUIRED_ATTRIBUTE_LIST);
+				adm.load(res,AdminEntity.REQUIRED_ATTRIBUTE_LIST,AdminEntity.OPTIONAL_ATTRIBUTE_LIST);
 
 				return Optional.of(adm);
 			}

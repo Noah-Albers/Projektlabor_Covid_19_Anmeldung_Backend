@@ -217,7 +217,7 @@ public class PLCAConnection extends Thread {
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 		} catch (RSAException | SQLException e) {
 			// Log
-			this.log.debug("Auth error").critical(e);
+			this.log.debug("Auth error (RSA/SQL)").critical(e);
 			// Kills the connection with an auth error
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 		}
