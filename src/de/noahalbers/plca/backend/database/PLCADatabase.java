@@ -293,17 +293,18 @@ public class PLCADatabase {
 				ps.setTimestamp(3, afterDate);
 
 				// Executes the query
-				ResultSet res = ps.executeQuery();
-
-				// Loads all passed entitys
-				while (res.next()) {
-					// Creates the user
-					UserEntity user = new UserEntity();
-					// Loads the users values
-					user.load(res, REQUIRED_CONTACT_ENTITYS, OPTIONAL_CONTACT_ENTITYS);
-					// Adds the user
-					grabbedUsers.put(user, new ArrayList<>());
+				try(ResultSet res = ps.executeQuery()){					
+					// Loads all passed entitys
+					while (res.next()) {
+						// Creates the user
+						UserEntity user = new UserEntity();
+						// Loads the users values
+						user.load(res, REQUIRED_CONTACT_ENTITYS, OPTIONAL_CONTACT_ENTITYS);
+						// Adds the user
+						grabbedUsers.put(user, new ArrayList<>());
+					}
 				}
+
 			} catch (SQLException | EntityLoadException e) {
 				// Passes on the error
 				optError.set(e);
@@ -322,17 +323,18 @@ public class PLCADatabase {
 				ps.setTimestamp(3, afterDate);
 
 				// Executes the query
-				ResultSet res = ps.executeQuery();
-
-				// Interprets the values
-				while (res.next()) {
-					// Creates the user
-					ContactInfoEntity user = new ContactInfoEntity();
-					// Loads the users values
-					user.load(res, ContactInfoEntity.ATTRIBUTE_LIST);
-					// Adds the user
-					grabbedInfos.add(user);
+				try(ResultSet res = ps.executeQuery()){					
+					// Interprets the values
+					while (res.next()) {
+						// Creates the user
+						ContactInfoEntity user = new ContactInfoEntity();
+						// Loads the users values
+						user.load(res, ContactInfoEntity.ATTRIBUTE_LIST);
+						// Adds the user
+						grabbedInfos.add(user);
+					}
 				}
+
 			} catch (SQLException | EntityLoadException e) {
 				optError.set(e);
 			}
@@ -410,11 +412,13 @@ public class PLCADatabase {
 			ps.executeUpdate();
 
 			// Gets the id
-			ResultSet rs = ps.getGeneratedKeys();
-			rs.next();
-
-			// Appends the id to the admin
-			ts.id = rs.getInt(1);
+			try(ResultSet rs = ps.getGeneratedKeys()){
+				// Gets the result for the new id
+				rs.next();
+				
+				// Appends the id to the admin
+				ts.id = rs.getInt(1);
+			}
 		}
 	}
 	
@@ -438,22 +442,22 @@ public class PLCADatabase {
 			ps.setInt(1, userId);
 
 			// Executes the query
-			ResultSet res = ps.executeQuery();
-
-			// Checks if no last timespent got found
-			if (!res.next())
-				return Optional.empty();
-
-			// Parses the timespent entity
-			TimespentEntity ts = new TimespentEntity();
-			ts.load(res, new String[]{
-				TimespentEntity.ID,
-				TimespentEntity.START_TIME, 
-				TimespentEntity.END_DISCONNECTED, 
-				TimespentEntity.USER_ID
-			});
-
-			return Optional.of(ts);
+			try(ResultSet res = ps.executeQuery()){				
+				// Checks if no last timespent got found
+				if (!res.next())
+					return Optional.empty();
+				
+				// Parses the timespent entity
+				TimespentEntity ts = new TimespentEntity();
+				ts.load(res, new String[]{
+						TimespentEntity.ID,
+						TimespentEntity.START_TIME, 
+						TimespentEntity.END_DISCONNECTED, 
+						TimespentEntity.USER_ID
+				});
+				
+				return Optional.of(ts);
+			}
 		} catch (EntityLoadException e) {
 			throw new SQLException(e);
 		}
@@ -498,11 +502,14 @@ public class PLCADatabase {
 			ps.executeUpdate();
 
 			// Gets the id
-			ResultSet rs = ps.getGeneratedKeys();
-			rs.next();
+			try(ResultSet rs = ps.getGeneratedKeys()){
+				// Gets the id of the new row
+				rs.next();
+				
+				// Appends the id to the admin
+				user.id = rs.getInt(1);
+			}
 
-			// Appends the id to the admin
-			user.id = rs.getInt(1);
 		} catch (SQLIntegrityConstraintViolationException e) {
 			throw new DuplicatedEntryException(e);
 		}
@@ -602,20 +609,21 @@ public class PLCADatabase {
 			ps.setInt(1, userId);
 
 			// Executes the query
-			ResultSet res = ps.executeQuery();
-
-			// Checks if no user got found
-			if (!res.next())
-				return Optional.empty();
-
-			try {
-				// Parses the user
-				UserEntity user = new UserEntity();
-				user.load(res, UserEntity.OPTIONAL_ATTRIBUTE_LIST,UserEntity.REQUIRED_ATTRIBUTE_LIST);
-
-				return Optional.of(user);
-			} catch (EntityLoadException e) {
-				throw new SQLException(e);
+			try(ResultSet res = ps.executeQuery()){				
+				
+				// Checks if no user got found
+				if (!res.next())
+					return Optional.empty();
+				
+				try {
+					// Parses the user
+					UserEntity user = new UserEntity();
+					user.load(res, UserEntity.OPTIONAL_ATTRIBUTE_LIST,UserEntity.REQUIRED_ATTRIBUTE_LIST);
+					
+					return Optional.of(user);
+				} catch (EntityLoadException e) {
+					throw new SQLException(e);
+				}
 			}
 		}
 	}
@@ -632,10 +640,10 @@ public class PLCADatabase {
 	 */
 	public SimpleUserEntity[] getSimpleUsers(Connection con) throws SQLException {
 		try (
-				// Starts the statement
-				PreparedStatement query = con.prepareStatement("SELECT id,firstname,lastname FROM user;");
-				// Executes the query and gets the result
-				ResultSet res = query.executeQuery()) {
+			// Starts the statement
+			PreparedStatement query = con.prepareStatement("SELECT id,firstname,lastname FROM user;");
+			// Executes the query and gets the result
+			ResultSet res = query.executeQuery()) {
 
 			// Holds all found users
 			List<SimpleUserEntity> users = new ArrayList<>();
@@ -715,14 +723,14 @@ public class PLCADatabase {
 			// Inserts the values
 			ps.setString(1, rfid);
 			// Executes the query
-			ResultSet res = ps.executeQuery();
-
-			// Checks if no user got found
-			if (!res.next())
-				return new AbstractMap.SimpleEntry<>(null, null);
-
-			// Tries to parse the user
-			user.load(res, SimpleUserEntity.ATTRIBUTE_LIST);
+			try(ResultSet res = ps.executeQuery()){				
+				// Checks if no user got found
+				if (!res.next())
+					return new AbstractMap.SimpleEntry<>(null, null);
+				
+				// Tries to parse the user
+				user.load(res, SimpleUserEntity.ATTRIBUTE_LIST);
+			}
 		} catch (EntityLoadException e) {
 			throw new SQLException(e);
 		}
