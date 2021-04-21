@@ -182,7 +182,7 @@ public class PLCAConnection extends Thread {
 
 			// Gets the remote rsa-public key
 			PublicKey remoteKey = this.getKeyAndPrepare(clientId);
-
+			
 			// Generates the secret for the communication (AES-Key and AES-Init-Vector)
 			this.aesKey = this.encryptionManager.generateAESKey();
 			this.aesIv = this.encryptionManager.generateAESIV();
@@ -217,7 +217,7 @@ public class PLCAConnection extends Thread {
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 		} catch (RSAException | SQLException e) {
 			// Log
-			this.log.warn("Auth error").critical(e);
+			this.log.debug("Auth error").critical(e);
 			// Kills the connection with an auth error
 			this.killConnection(ConnectionStatus.DISCONNECTED_AUTH_ERROR);
 		}
@@ -288,7 +288,7 @@ public class PLCAConnection extends Thread {
 		// Sends an packet the error
 		this.sendPacket(new JSONObject() {
 			{
-				put("status", 2);
+				put("status", 1);
 				put("error", error);
 				put("data",data == null ? new JSONObject() : data);
 			}

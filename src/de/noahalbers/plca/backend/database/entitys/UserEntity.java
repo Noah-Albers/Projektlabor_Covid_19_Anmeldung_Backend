@@ -12,13 +12,6 @@ import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
 import de.noahalbers.plca.backend.util.Nullable;
 
 public class UserEntity extends SimpleUserEntity {
-
-	// Holds all entrys
-	private static Map<String, Field> DB_ENTRYS = getEntrys(UserEntity.class, true);
-	private static Map<String, Field> JSON_ENTRYS = getEntrys(UserEntity.class, false);
-
-	// Holds a list with all database entrys. Can be used to load all values from a class
-	public static final String[] DB_ENTRY_LIST = DB_ENTRYS.keySet().toArray(new String[DB_ENTRYS.size()]);
 	
 	public static final String
 	POSTAL_CODE = "postalcode",
@@ -30,6 +23,18 @@ public class UserEntity extends SimpleUserEntity {
 	RFID = "rfidcode",
 	AUTODELETE = "autodeleteaccount",
 	REGISTER_DATE = "createdate";
+	
+	// Copy-Paste generated. Just change the class name
+	// Automatically grabs and stores all attributes from the class to easily serialize and deserialize those
+	private static Map<String, Field> ATTRIBUTES = getAttributes(UserEntity.class);
+	public static final String[] ATTRIBUTE_LIST = getAttributeNames(UserEntity.class);
+	public static final String[] OPTIONAL_ATTRIBUTE_LIST = getAttributeNames(UserEntity.class, true);
+	public static final String[] REQUIRED_ATTRIBUTE_LIST = getAttributeNames(UserEntity.class, false);
+	
+	@Override
+	protected Map<String, Field> attributes() {
+		return ATTRIBUTES;
+	}
 	
 	@EntityInfo(POSTAL_CODE)
 	public Integer postalCode;
@@ -66,16 +71,11 @@ public class UserEntity extends SimpleUserEntity {
 	}
 
 	@Override
-	protected Map<String, Field> entrys(boolean databaseEntrys) {
-		return databaseEntrys?DB_ENTRYS:JSON_ENTRYS;
-	}
-	
-	@Override
 	public String toString() {
 		try {
 			// Parses the user into an json object
 			JSONObject jo = new JSONObject();
-			this.save(jo, DB_ENTRY_LIST);
+			this.save(jo, UserEntity.ATTRIBUTE_LIST);
 			
 			// Mapps all values into a display list
 			return jo.keySet().stream().map(i->i+"='"+jo.get(i)+"'").collect(Collectors.joining(" "));

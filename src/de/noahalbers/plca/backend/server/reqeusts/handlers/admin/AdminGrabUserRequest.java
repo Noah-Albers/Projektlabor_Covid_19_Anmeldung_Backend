@@ -62,7 +62,7 @@ public class AdminGrabUserRequest extends RequestHandler{
 			
 			// Creates the response
 			JSONObject response = new JSONObject();
-			optUser.get().save(response, UserEntity.DB_ENTRY_LIST);
+			optUser.get().save(response, UserEntity.ATTRIBUTE_LIST);
 			
 			// Sends back the user
 			request.sendResponse(response);

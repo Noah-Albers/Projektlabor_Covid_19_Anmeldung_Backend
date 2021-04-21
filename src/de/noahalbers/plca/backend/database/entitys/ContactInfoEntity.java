@@ -15,13 +15,16 @@ public class ContactInfoEntity extends Entity{
 	CONTACT_ID = "cid";
 					
 
-	// Holds all entrys
-	private static Map<String, Field> DB_ENTRYS = getEntrys(ContactInfoEntity.class, true);
-	private static Map<String, Field> JSON_ENTRYS = getEntrys(ContactInfoEntity.class, false);
+	// Copy-Paste generated. Just change the class name
+	// Automatically grabs and stores all attributes from the class to easily serialize and deserialize those
+	private static Map<String, Field> ATTRIBUTES = getAttributes(ContactInfoEntity.class);
+	public static final String[] ATTRIBUTE_LIST = getAttributeNames(ContactInfoEntity.class);
 	
-	// Holds a list with all database entrys. Can be used to load all values from a class
-	public static final String[] DB_ENTRY_LIST = DB_ENTRYS.keySet().toArray(new String[DB_ENTRYS.size()]);
-
+	@Override
+	protected Map<String, Field> attributes() {
+		return ATTRIBUTES;
+	}
+	
 	// Time when the infected person arrived
 	@EntityInfo(INFECTED_STARTTIME)
 	public Timestamp infectedStarttime;
@@ -41,9 +44,4 @@ public class ContactInfoEntity extends Entity{
 	// Id of the contact person
 	@EntityInfo(CONTACT_ID)
 	public Integer contactID;
-	
-	@Override
-	protected Map<String, Field> entrys(boolean databaseEntrys) {
-		return databaseEntrys?DB_ENTRYS:JSON_ENTRYS;
-	}
 }

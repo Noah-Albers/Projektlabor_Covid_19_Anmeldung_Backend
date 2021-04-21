@@ -19,6 +19,7 @@ import org.json.JSONObject;
 import de.noahalbers.plca.backend.database.EntityInfo;
 import de.noahalbers.plca.backend.database.exceptions.EntityLoadException;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
+import de.noahalbers.plca.backend.util.Nullable;
 
 public abstract class Entity {
 
@@ -32,6 +33,7 @@ public abstract class Entity {
 	private static Map<Class<?>,Function<String,?>> CONVERTERS = new HashMap<Class<?>, Function<String,?>>(){{
 		put(Date.class,Date::valueOf);
 		put(Timestamp.class,Timestamp::valueOf);
+		put(Long.class,Long::valueOf);
 	}};
 
 	/**
@@ -40,17 +42,13 @@ public abstract class Entity {
 	 * they can best be grabbed like this so load-time can be reduced.
 	 * 
 	 * Use them like this: 1. Create a static Map<String,Field> for your class and
-	 * directly assign them to {@link #getEntrys(Class, boolean)} with
-	 * YourClass.class as the first argument. 2. Do that for both json
-	 * second-argument: false and database second-argument: true 3. Override the
-	 * method {@link #entrys(boolean)} and do it like this: return
-	 * databaseEntrys?YOUR_STATIC_DB_MAP:YOUR_STATIC_JSON_MAP;
+	 * directly assign them to {@link #getAttributes(Class)} with
+	 * YourClass.class as the argument. 2. Override the
+	 * method {@link #attributes()} and by returning your static map.
 	 * 
-	 * @param databaseEntrys
-	 *            if the database entry's are required or the entry's for json
-	 * @return the entr's for the required type
+	 * @return the entry's for the required type
 	 */
-	protected abstract Map<String, Field> entrys(boolean databaseEntrys);
+	protected abstract Map<String, Field> attributes();
 
 	/**
 	 * Saves this entity to the given json-object. All parameters of which the names
@@ -109,7 +107,7 @@ public abstract class Entity {
 			} catch (SQLException e) {
 				return null;
 			}
-		}, true, required, optional);
+		}, required, optional);
 	}
 
 	/**
@@ -135,7 +133,7 @@ public abstract class Entity {
 			} catch (JSONException e) {
 				return null;
 			}
-		}, false, required, optional);
+		}, required, optional);
 	}
 
 	/**
@@ -157,21 +155,23 @@ public abstract class Entity {
 	 * @throws EntityLoadException
 	 *             if anything went wrong during the loading of the object
 	 */
-	private void load(Function<String, Object> supplie, boolean useDatabase, String[] required, String... optional)
+	private void load(Function<String, Object> supplie, String[] required, String... optional)
 			throws EntityLoadException {
-		// Gets all entry's from for the class
-		Map<String, Field> entrys = this.entrys(useDatabase);
 
 		// Loads all required value
 		for (String x : required)
 			try {
 				// Gets the field
 				Field f;
-				if ((f = entrys.getOrDefault(x, null)) == null)
+				if ((f = this.attributes().getOrDefault(x, null)) == null)
 					throw new EntityLoadException(false, true, x);
 
 				// Gets the value
 				Object val = supplie.apply(x);
+				
+				// Checks that the value could be loaded
+				if(val == null)
+					throw new EntityLoadException(true, false, x);
 
 				// Checks if the value is not of the correct type
 				if(val.getClass() != f.getType())
@@ -190,20 +190,34 @@ public abstract class Entity {
 			try {
 				// Gets the field
 				Field f;
-				if ((f = entrys.getOrDefault(x, null)) == null)
+				if ((f = this.attributes().getOrDefault(x, null)) == null)
 					throw new EntityLoadException(true, true, x);
 
 				// Gets the value
 				Object val = supplie.apply(x);
-
+				
+				// Checks if the value is not given
+				if(val == null)
+					continue;
+				
 				// Checks if the value is not of the correct type
 				if(val.getClass() != f.getType())
 					// Tries to find a converter and applies it
 					val = CONVERTERS.get(f.getType()).apply(val.toString());
+
+				// Checks if the field is a string
+				if(val instanceof String) {
+					// Gets the nullable annotation
+					Nullable nullable = f.getDeclaredAnnotation(Nullable.class);
+					
+					// Checks if the field is nullable, the field is empty and the field should be autoset to null if empty
+					if(nullable != null && nullable.ifEmptyStringAutoToNull() && ((String)val).isEmpty())
+						val=null;
+				}
 				
 				// Tries to set the value
 				f.setAccessible(true);
-				f.set(this, val);
+				f.set(this, val == null ? null : val);
 			} catch (Exception e) {
 				throw new EntityLoadException(false, true, x);
 			}
@@ -224,9 +238,6 @@ public abstract class Entity {
 	 *             if anything went wrong during the suppling
 	 */
 	private void save(Set set, String... list) throws EntitySaveException {
-		// Gets all entry's from for the class
-		Map<String, Field> entrys = this.entrys(true);
-
 		// Iterates over all values that should be saved
 		for (int i = 0; i < list.length; i++)
 			try {
@@ -235,7 +246,7 @@ public abstract class Entity {
 
 				// Gets the field
 				Field f;
-				if ((f = entrys.getOrDefault(name, null)) == null)
+				if ((f = this.attributes().getOrDefault(name, null)) == null)
 					throw new EntitySaveException(true, name);
 
 				// Sets the value for the statement
@@ -246,13 +257,46 @@ public abstract class Entity {
 	}
 	
 	/**
-	 * Searches all entry's (EntityInfo's) from the class
+	 * Returns all entity attribute-names
+	 * @param cls the class to search the attributes from
+	 */
+	protected static String[] getAttributeNames(Class<?> cls) {
+		// Gets the attributes
+		Map<String, Field> atts = getAttributes(cls);
+		
+		// Converts to name array
+		return atts.keySet().toArray(new String[atts.size()]);
+	}
+	
+	/**
+	 * Returns all entity attribute-names that are eighter optional or required (select by the optional param)
+	 * @param cls the class to select from
+	 * @param optional if the optional or required tags should be selected
+	 */
+	protected static String[] getAttributeNames(Class<?> cls, boolean optional) {
+		// Selects all optional or required attributes from a class
+		return
+			// Gets all entries
+			getAttributes(cls).entrySet().stream()
+			// Filters the nullable annotations
+			.filter(i->{
+				int anLen = i.getValue().getDeclaredAnnotationsByType(Nullable.class).length;
+				return (anLen > 0) == optional;
+			})
+			// Maps to their names
+			.map(i->i.getKey())
+			// returns them
+			.toArray(String[]::new);
+	}
+	
+	/**
+	 * Searches all attributes (EntityInfo's) from the class
 	 * 
 	 * @param cls
 	 *            the given class (will be parsed recursively using the superclass)
 	 * @return a list with all entry's
 	 */
-	protected static Map<String, Field> getEntrys(Class<?> cls, boolean useDatabase) {
+	protected static Map<String, Field> getAttributes(Class<?> cls) {
 		try {
 			// Selects all fields and filters those, who have a EntityInfo annotation
 			Map<String, Field> map = Arrays.stream(cls.getDeclaredFields()).map(i -> {
@@ -264,7 +308,7 @@ public abstract class Entity {
 					return null;
 				
 				// Gets the used name and field
-				return new SimpleEntry<String, Field>(useDatabase || info.jsonName().isEmpty() ? info.value() : info.jsonName(),i);
+				return new SimpleEntry<String, Field>(info.value(),i);
 				
 			})
 			.filter(i -> i != null)
@@ -275,7 +319,7 @@ public abstract class Entity {
 			// Checks if the given class has another superclass that could contain entrys
 			if (!cls.getSuperclass().equals(Object.class))
 				// Appends all entry's from the super class info the list
-				map.putAll(getEntrys(cls.getSuperclass(), useDatabase));
+				map.putAll(getAttributes(cls.getSuperclass()));
 			
 			return map;
 			

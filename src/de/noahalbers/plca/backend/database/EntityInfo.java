@@ -10,5 +10,4 @@ import java.lang.annotation.Target;
 @Target(FIELD)
 public @interface EntityInfo {
 	public String value();
-	public String jsonName() default "";
 }

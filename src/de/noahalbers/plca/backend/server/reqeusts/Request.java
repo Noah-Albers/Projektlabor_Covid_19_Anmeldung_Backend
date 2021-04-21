@@ -43,6 +43,7 @@ public class Request {
 		this.doReceive = doReceive;
 		this.dbConnection = dbConnection;
 		this.admin = admin;
+		this.authObject=authObject;
 	}
 
 	/**

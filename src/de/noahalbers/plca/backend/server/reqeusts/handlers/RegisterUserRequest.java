@@ -90,13 +90,13 @@ public class RegisterUserRequest extends RequestHandler{
 					.debug("Username already exists");
 					// Sends a duplicate exception for the name
 					request.sendError("dup.name");
-					break;
-				case "rfid":
+					return;
+				case "rfidcode":
 					request.logger
 					.debug("RFID already exists");
 					// Sends a duplicated exception for the rfid
 					request.sendError("dup.rfid");
-					break;
+					return;
 			}
 			
 			// Unknown database error

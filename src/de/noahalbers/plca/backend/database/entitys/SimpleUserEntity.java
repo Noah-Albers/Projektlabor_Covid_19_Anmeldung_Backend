@@ -12,12 +12,15 @@ public class SimpleUserEntity extends Entity{
 	FIRSTNAME = "firstname",
 	LASTNAME = "lastname";
 
-	// Holds all entrys
-	private static Map<String, Field> DB_ENTRYS = getEntrys(SimpleUserEntity.class, true);
-	private static Map<String, Field> JSON_ENTRYS = getEntrys(SimpleUserEntity.class, false);
-
-	// Holds a list with all database entrys. Can be used to load all values from a class
-	public static final String[] DB_ENTRY_LIST = DB_ENTRYS.keySet().toArray(new String[DB_ENTRYS.size()]);
+	// Copy-Paste generated. Just change the class name
+	// Automatically grabs and stores all attributes from the class to easily serialize and deserialize those
+	private static Map<String, Field> ATTRIBUTES = getAttributes(SimpleUserEntity.class);
+	public static final String[] ATTRIBUTE_LIST = getAttributeNames(SimpleUserEntity.class);
+	
+	@Override
+	protected Map<String, Field> attributes() {
+		return ATTRIBUTES;
+	}
 
 	
 	@EntityInfo(ID)
@@ -33,11 +36,6 @@ public class SimpleUserEntity extends Entity{
 		this.id = id;
 		this.firstname = firstname;
 		this.lastname = lastname;
-	}
-
-	@Override
-	protected Map<String, Field> entrys(boolean databaseEntrys) {
-		return databaseEntrys?DB_ENTRYS:JSON_ENTRYS;
 	}
 	
 	@Override

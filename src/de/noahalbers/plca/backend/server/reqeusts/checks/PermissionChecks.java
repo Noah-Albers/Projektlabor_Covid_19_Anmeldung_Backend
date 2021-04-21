@@ -47,7 +47,7 @@ public final class PermissionChecks {
 	public static PermissionCheck CHECK_ADMIN_AUTH_CODE = req->{
 		
 		// Gets the auth code
-		Long authCode = req.getFromAuth("code", Long.class);
+		Number authCode = req.getFromAuth("code", Number.class);
 		if(authCode==null) {
 			req.logger.debug("Auth code is missing.");
 			return of("auth.missing");
@@ -57,7 +57,7 @@ public final class PermissionChecks {
 		AdminEntity adm = req.getAdmin().get();
 		
 		// Checks if the auth code is invalid
-		if(adm.authCode == null || adm.authCodeExpire == null || authCode != adm.authCode) {
+		if(adm.authCode == null || adm.authCodeExpire == null || authCode.longValue() != adm.authCode) {
 			req.logger.debug("Provided auth code is invalid").critical("AuthCode="+adm.authCode);
 			return of("auth.invalid");
 		}
@@ -66,7 +66,7 @@ public final class PermissionChecks {
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		
 		// Checks if the auth is expired
-		if(adm.authCodeExpire.after(now)) {
+		if(now.after(adm.authCodeExpire)) {
 			req.logger.debug("Auth code is expired").critical("AuthCode="+adm.authCode+"; Expired="+adm.authCodeExpire);
 			return of("auth.expired");
 		}

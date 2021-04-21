@@ -41,15 +41,18 @@ public class LoginRequest extends RequestHandler{
 	public void execute(Request request) throws IOException {
 		try {
 			// Gets the user id
-			Integer uid = request.getFromMessage("id",Integer.class);
+			Number uid = request.getFromMessage("id",Number.class);
 			if(uid == null) {
 				request.logger.debug("Provided no id");
 				this.sendErrorMissingField(request, "id");
 				return;
 			}
 			
+			// Gets the id as an int
+			int idInt = uid.intValue();
+			
 			// Checks if the user exists
-			if(!this.database.doesUserExists(request.startDatabaseConnection(), uid)) {
+			if(!this.database.doesUserExists(request.startDatabaseConnection(), idInt)) {
 				// Log
 				request.logger
 				.debug("User not found.")
@@ -60,7 +63,7 @@ public class LoginRequest extends RequestHandler{
 			}
 			
 			// Tries to get the last open entity
-			Optional<TimespentEntity> optEnt = this.database.getLastOpenTimespent(request.startDatabaseConnection(), uid);
+			Optional<TimespentEntity> optEnt = this.database.getLastOpenTimespent(request.startDatabaseConnection(), idInt);
 			
 			// Checks if the user is still logged in
 			if(optEnt.isPresent()) {
@@ -76,7 +79,8 @@ public class LoginRequest extends RequestHandler{
 			// Creates a new timespent entity
 			TimespentEntity ts = new TimespentEntity() {{
 				this.startTime=new Timestamp(System.currentTimeMillis());
-				this.userId=uid;
+				this.userId=idInt;
+				this.gotDisconnected=false;
 			}};
 
 			// Saves the timespent into the database

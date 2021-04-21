@@ -42,15 +42,18 @@ public class LogoutRequest extends RequestHandler{
 	public void execute(Request request) throws IOException {
 		try {
 			// Gets the user id
-			Integer uid = request.getFromMessage("id",Integer.class);
+			Number uid = request.getFromMessage("id",Number.class);
 			if(uid==null) {
 				request.logger.debug("User not provided.");
 				this.sendErrorMissingField(request, "id");
 				return;
 			}
 			
+			// Gets the id as an int
+			int id = uid.intValue();
+			
 			// Checks if the user exists
-			if(!this.database.doesUserExists(request.startDatabaseConnection(), uid)) {
+			if(!this.database.doesUserExists(request.startDatabaseConnection(), id)) {
 				// Log
 				request.logger
 				.debug("User not found")
@@ -61,7 +64,7 @@ public class LogoutRequest extends RequestHandler{
 			}
 			
 			// Tries to get the last open entity
-			Optional<TimespentEntity> optEnt = this.database.getLastOpenTimespent(request.startDatabaseConnection(), uid);
+			Optional<TimespentEntity> optEnt = this.database.getLastOpenTimespent(request.startDatabaseConnection(), id);
 			
 			// Checks if the user is still logged in
 			if(!optEnt.isPresent()) {

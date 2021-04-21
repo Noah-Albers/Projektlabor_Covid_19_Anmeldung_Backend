@@ -157,11 +157,11 @@ public class PLCADatabase {
 	public void updateAdmin(Connection con, AdminEntity entity) throws SQLException, EntitySaveException {
 		// Prepares the query
 		try (PreparedStatement ps = con
-				.prepareStatement(this.getUpdateQuery("admin", AdminEntity.ID, AdminEntity.DB_ENTRY_LIST))) {
+				.prepareStatement(this.getUpdateQuery("admin", AdminEntity.ID, AdminEntity.ATTRIBUTE_LIST))) {
 			// Inserts the values
-			entity.save(ps, AdminEntity.DB_ENTRY_LIST);
+			entity.save(ps, AdminEntity.ATTRIBUTE_LIST);
 			// Inserts the primary value
-			ps.setInt(AdminEntity.DB_ENTRY_LIST.length + 1, entity.id);
+			ps.setInt(AdminEntity.ATTRIBUTE_LIST.length + 1, entity.id);
 
 			// Executes the statement
 			ps.execute();
@@ -204,11 +204,11 @@ public class PLCADatabase {
 	public void updateUser(Connection con, UserEntity entity) throws SQLException, EntitySaveException {
 		// Prepares the query
 		try (PreparedStatement ps = con
-				.prepareStatement(this.getUpdateQuery("user", SimpleUserEntity.ID, UserEntity.DB_ENTRY_LIST))) {
+				.prepareStatement(this.getUpdateQuery("user", SimpleUserEntity.ID, UserEntity.ATTRIBUTE_LIST))) {
 			// Inserts the values
-			entity.save(ps, UserEntity.DB_ENTRY_LIST);
+			entity.save(ps, UserEntity.ATTRIBUTE_LIST);
 			// Inserts the primary value
-			ps.setInt(UserEntity.DB_ENTRY_LIST.length + 1, entity.id);
+			ps.setInt(UserEntity.ATTRIBUTE_LIST.length + 1, entity.id);
 
 			// Executes the statement
 			ps.execute();
@@ -230,11 +230,11 @@ public class PLCADatabase {
 	public void updateTimespent(Connection con, TimespentEntity entity) throws SQLException, EntitySaveException {
 		// Prepares the query
 		try (PreparedStatement ps = con.prepareStatement(
-				this.getUpdateQuery("timespent", TimespentEntity.ID, TimespentEntity.DB_ENTRY_LIST))) {
+				this.getUpdateQuery("timespent", TimespentEntity.ID, TimespentEntity.ATTRIBUTE_LIST))) {
 			// Inserts the values
-			entity.save(ps, TimespentEntity.DB_ENTRY_LIST);
+			entity.save(ps, TimespentEntity.ATTRIBUTE_LIST);
 			// Inserts the primary value
-			ps.setInt(TimespentEntity.DB_ENTRY_LIST.length + 1, entity.id);
+			ps.setInt(TimespentEntity.ATTRIBUTE_LIST.length + 1, entity.id);
 
 			// Executes the statement
 			ps.execute();
@@ -329,7 +329,7 @@ public class PLCADatabase {
 					// Creates the user
 					ContactInfoEntity user = new ContactInfoEntity();
 					// Loads the users values
-					user.load(res, ContactInfoEntity.DB_ENTRY_LIST);
+					user.load(res, ContactInfoEntity.ATTRIBUTE_LIST);
 					// Adds the user
 					grabbedInfos.add(user);
 				}
@@ -403,9 +403,9 @@ public class PLCADatabase {
 
 		// Prepares the query
 		try (PreparedStatement ps = con.prepareStatement(
-				this.getInsertQuery("timespent", TimespentEntity.DB_ENTRY_LIST), Statement.RETURN_GENERATED_KEYS)) {
+				this.getInsertQuery("timespent", TimespentEntity.ATTRIBUTE_LIST), Statement.RETURN_GENERATED_KEYS)) {
 			// Inserts all values
-			ts.save(ps, TimespentEntity.DB_ENTRY_LIST);
+			ts.save(ps, TimespentEntity.ATTRIBUTE_LIST);
 			// Creates the user
 			ps.executeUpdate();
 
@@ -417,7 +417,7 @@ public class PLCADatabase {
 			ts.id = rs.getInt(1);
 		}
 	}
-
+	
 	/**
 	 * Tries to load the last open timespent entity (that has not been logged out)
 	 * 
@@ -446,7 +446,12 @@ public class PLCADatabase {
 
 			// Parses the timespent entity
 			TimespentEntity ts = new TimespentEntity();
-			ts.load(res, TimespentEntity.DB_ENTRY_LIST);
+			ts.load(res, new String[]{
+				TimespentEntity.ID,
+				TimespentEntity.START_TIME, 
+				TimespentEntity.END_DISCONNECTED, 
+				TimespentEntity.USER_ID
+			});
 
 			return Optional.of(ts);
 		} catch (EntityLoadException e) {
@@ -483,12 +488,12 @@ public class PLCADatabase {
 			throw new IllegalStateException(SimpleUserEntity.ID);
 
 		// Prepares the statement
-		try (PreparedStatement ps = con.prepareStatement(this.getInsertQuery("user", UserEntity.DB_ENTRY_LIST),
+		try (PreparedStatement ps = con.prepareStatement(this.getInsertQuery("user", UserEntity.ATTRIBUTE_LIST),
 				Statement.RETURN_GENERATED_KEYS)) {
 
 			// Inserts all values
-			user.save(ps, UserEntity.DB_ENTRY_LIST);
-			System.out.println(ps);
+			user.save(ps, UserEntity.ATTRIBUTE_LIST);
+			
 			// Creates the user
 			ps.executeUpdate();
 
@@ -606,7 +611,7 @@ public class PLCADatabase {
 			try {
 				// Parses the user
 				UserEntity user = new UserEntity();
-				user.load(res, UserEntity.DB_ENTRY_LIST);
+				user.load(res, UserEntity.OPTIONAL_ATTRIBUTE_LIST,UserEntity.REQUIRED_ATTRIBUTE_LIST);
 
 				return Optional.of(user);
 			} catch (EntityLoadException e) {
@@ -640,7 +645,7 @@ public class PLCADatabase {
 				// Creates the user
 				SimpleUserEntity sue = new SimpleUserEntity();
 				// Imports all parameters
-				sue.load(res, SimpleUserEntity.DB_ENTRY_LIST);
+				sue.load(res, SimpleUserEntity.ATTRIBUTE_LIST);
 				// Appends the object to the list
 				users.add(sue);
 			}
@@ -678,7 +683,7 @@ public class PLCADatabase {
 				// Creates an admin entity
 				AdminEntity adm = new AdminEntity();
 				// Loads all values from the result set
-				adm.load(res, AdminEntity.DB_ENTRY_LIST);
+				adm.load(res, AdminEntity.OPTIONAL_ATTRIBUTE_LIST,AdminEntity.REQUIRED_ATTRIBUTE_LIST);
 
 				return Optional.of(adm);
 			}
@@ -706,7 +711,7 @@ public class PLCADatabase {
 
 		// Prepares the select query for the user
 		try (PreparedStatement ps = con.prepareStatement(
-				this.getSelectQuery("user", UserEntity.RFID + "=?", SimpleUserEntity.DB_ENTRY_LIST))) {
+				this.getSelectQuery("user", UserEntity.RFID + "=?", SimpleUserEntity.ATTRIBUTE_LIST))) {
 			// Inserts the values
 			ps.setString(1, rfid);
 			// Executes the query
@@ -717,7 +722,7 @@ public class PLCADatabase {
 				return new AbstractMap.SimpleEntry<>(null, null);
 
 			// Tries to parse the user
-			user.load(res, SimpleUserEntity.DB_ENTRY_LIST);
+			user.load(res, SimpleUserEntity.ATTRIBUTE_LIST);
 		} catch (EntityLoadException e) {
 			throw new SQLException(e);
 		}

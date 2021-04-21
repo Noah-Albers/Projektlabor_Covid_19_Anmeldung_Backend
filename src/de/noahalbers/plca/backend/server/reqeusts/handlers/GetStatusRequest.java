@@ -40,16 +40,19 @@ public class GetStatusRequest extends RequestHandler{
 	public void execute(Request request) throws IOException {
 		try {
 			// Gets the id
-			Integer id = request.getFromMessage("id",Integer.class);
-			if(id==null) {
+			Number idNum = request.getFromMessage("id",Number.class);
+			if(idNum==null) {
 				
 				request.logger
 				.debug("Id not found")
-				.critical("ID="+id);
+				.critical("ID="+idNum);
 				
 				this.sendErrorMissingField(request, "id");
 				return;
 			}
+			
+			// Gets the id as an int
+			int id = idNum.intValue();
 			
 			// Checks if the provided user exists
 			if(!this.database.doesUserExists(request.startDatabaseConnection(), id)) {

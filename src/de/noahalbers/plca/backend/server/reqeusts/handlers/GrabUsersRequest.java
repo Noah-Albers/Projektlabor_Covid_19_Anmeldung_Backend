@@ -44,7 +44,7 @@ public class GrabUsersRequest extends RequestHandler{
 			for(SimpleUserEntity u : dbUsers) {
 				// Converts the user to json
 				JSONObject o = new JSONObject();
-				u.save(o, SimpleUserEntity.DB_ENTRY_LIST);
+				u.save(o, SimpleUserEntity.ATTRIBUTE_LIST);
 
 				// Appends the user
 				jsonUsers.append("users",o);

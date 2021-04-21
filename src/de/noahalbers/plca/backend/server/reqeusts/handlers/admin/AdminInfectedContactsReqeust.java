@@ -124,7 +124,7 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 			JSONObject userJson = new JSONObject();
 			
 			// Saves the user to the object
-			user.getKey().save(userJson, UserEntity.DB_ENTRY_LIST);
+			user.getKey().save(userJson, UserEntity.ATTRIBUTE_LIST);
 			
 			// Appends the user infos
 			userJson.put("contactinfo", this.concatInfoToJson(user.getValue()));
