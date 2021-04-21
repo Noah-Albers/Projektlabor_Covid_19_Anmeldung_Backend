@@ -57,7 +57,7 @@ public class PLCA {
 			.register("autologout_after_time", new IntegerValue(24),"How long a user has to be logged in to get logged out automatically.")
 			.register("admin_auth_expire", new LongValue(1000l * 60 * 60 * 24),"How many millis it takes until a generated auth code expires.")
 			.register("admin_auth_email_subject", new StringValue("PL-Admin-interface Authcode"),"The Email-subject that will be send when sending a auth code to an email.")
-			.register("admin_auth_email_html", new StringValue("<h1>Dein neuer Authcode lautet <span style=\"font-family:monospace;border-radius:5px;background:gray;padding:10px\">%code%</span>. Passe gut auf ihn auf.</h1>"),"The HTML-Content of the email the embeds the authcode. The text %code% will be replaced with the actual code.")
+			.register("admin_auth_email_html", new StringValue("<h1>Ihr Authentifizierungscode lautet: <span style=\"font-size:150%;font-family:monospace;border-radius:5px;background:gray;padding:2px 5px;color:white;\">%code%</span></h1>"),"The HTML-Content of the email the embeds the authcode. The text %code% will be replaced with the actual code.")
 			;
 	
 	private PLCA() {
