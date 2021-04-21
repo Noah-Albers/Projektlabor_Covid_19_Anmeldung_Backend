@@ -7,8 +7,6 @@ import java.sql.Timestamp;
 
 import javax.mail.MessagingException;
 
-import org.json.JSONObject;
-
 import de.noahalbers.plca.backend.PLCA;
 import de.noahalbers.plca.backend.config.Config;
 import de.noahalbers.plca.backend.database.entitys.AdminEntity;
@@ -25,6 +23,7 @@ public class AdminAuthcodeRequest extends RequestHandler {
 	 * 	Errors:
 	 * 		database: Backend failed to establish a valid database connection
 	 * 		unknown: an unknown error occurre. This should not happen. Please try again.	
+	 * 		email: an error occurred while sending the email. Is the email not existing or is it a server-side problem
 	 * 
 	 * 	Success: Empty (Email with auth code has been send successfully)
 	 */
@@ -76,12 +75,13 @@ public class AdminAuthcodeRequest extends RequestHandler {
 				EMAIL_CONT.replace("%code%", adm.authCode.toString())
 			);
 		} catch (MessagingException e) {
-			this.sendErrorUnknownException(request, e);
+			request.logger.debug("Failed to send email").critical(e);
+			request.sendError("email");
 			return;
 		}
 		
 		// Sends the successful reset of the code
-		request.sendResponse(new JSONObject());
+		request.sendResponse(null);
 	}
 
 	@Override
