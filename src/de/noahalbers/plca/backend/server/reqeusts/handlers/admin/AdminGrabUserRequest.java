@@ -18,7 +18,7 @@ public class AdminGrabUserRequest extends RequestHandler{
 	/**
 	 * Responses:
 	 * 	Errors:
-	 * 		user: The given user-id does not correspont to any user in our system or has not been passed
+	 * 		user: No user given
 	 *		not_found: The given user could not be found
 	 *		
 	 * 		database: Backend failed to establish a valid database connection
