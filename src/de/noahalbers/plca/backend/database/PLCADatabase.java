@@ -180,7 +180,7 @@ public class PLCADatabase {
 	 */
 	public void freezeAdminAccount(Connection con, int adminId) throws SQLException {
 		try (PreparedStatement ps = con
-				.prepareStatement("UPDATE `admin` SET `" + AdminEntity.IS_FROZEN + "`=`1` WHERE`id`=?;")) {
+				.prepareStatement("UPDATE `admin` SET `" + AdminEntity.IS_FROZEN + "`=1 WHERE`"+AdminEntity.ID+"`=?;")) {
 			// Set the value
 			ps.setInt(1, adminId);
 
