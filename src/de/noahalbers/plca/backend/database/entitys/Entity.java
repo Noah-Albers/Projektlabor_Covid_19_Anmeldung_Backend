@@ -6,6 +6,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,7 +33,13 @@ public abstract class Entity {
 	// List of converters that can be used to convert a string to the required data-type (JSON-Sql-Converting fix)
 	@SuppressWarnings("serial")
 	private static Map<Class<?>,Function<String,?>> CONVERTERS = new HashMap<Class<?>, Function<String,?>>(){{
-		put(Date.class,Date::valueOf);
+		put(Date.class,x->{
+			try {
+				return Date.valueOf(x);
+			}catch(Exception e) {
+				return Date.valueOf(LocalDateTime.parse(x,DateTimeFormatter.ISO_DATE_TIME).toLocalDate());
+			}
+		});
 		put(Timestamp.class,Timestamp::valueOf);
 		put(Long.class,Long::valueOf);
 	}};

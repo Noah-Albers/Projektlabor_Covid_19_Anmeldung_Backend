@@ -3,7 +3,6 @@ package de.noahalbers.plca.backend.server.reqeusts.handlers.admin;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import de.noahalbers.plca.backend.database.entitys.SimpleUserEntity;
 import de.noahalbers.plca.backend.database.entitys.UserEntity;
 import de.noahalbers.plca.backend.database.exceptions.EntityLoadException;
 import de.noahalbers.plca.backend.database.exceptions.EntitySaveException;
@@ -28,25 +27,6 @@ public class AdminEditUserReqeust extends RequestHandler{
 	 * 		Loadable {@link UserEntity} Required={@link #REQUIRED} and Optional={@link #OPIONAL}
 	 */
 	
-	// Required and optional values that shall be passed by an admin
-	private static final String[] REQUIRED = {
-		SimpleUserEntity.ID,
-		UserEntity.POSTAL_CODE,
-		UserEntity.LOCATION,
-		UserEntity.STREET,
-		UserEntity.HOUSE_NUMBER,
-		UserEntity.AUTODELETE,
-		UserEntity.REGISTER_DATE,
-		SimpleUserEntity.FIRSTNAME,
-		SimpleUserEntity.LASTNAME
-	};
-	
-	private static final String[] OPIONAL = {		
-		UserEntity.TELEPHONE,
-		UserEntity.EMAIL,
-		UserEntity.RFID,
-	};
-	
 	@Override
 	public PermissionCheck[] getPermissionChecks() {
 		return of(
@@ -62,7 +42,7 @@ public class AdminEditUserReqeust extends RequestHandler{
 		UserEntity user = new UserEntity();
 		try {
 			// Loads the user
-			user.load(request.getMessage(), REQUIRED, OPIONAL);
+			user.load(request.getMessage(), UserEntity.REQUIRED_ATTRIBUTE_LIST, UserEntity.OPTIONAL_ATTRIBUTE_LIST);
 		} catch (EntityLoadException e) {
 			request.logger.debug("Failed to load user from passed values.").critical(e);
 			request.sendError("user");
