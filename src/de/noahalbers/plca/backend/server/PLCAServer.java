@@ -23,7 +23,7 @@ import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminEditUserRe
 import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminFreezeSelfRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminGetProfileRequest;
 import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminGrabUserRequest;
-import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminInfectedContactsReqeust;
+import de.noahalbers.plca.backend.server.reqeusts.handlers.admin.AdminInfectedContactsRequest;
 import de.noahalbers.plca.backend.server.socket.PLCAConnection;
 
 public class PLCAServer extends Thread{
@@ -57,7 +57,7 @@ public class PLCAServer extends Thread{
 		put(10,new AdminFreezeSelfRequest());
 		put(11,new AdminGetProfileRequest());
 		put(12,new AdminGrabUserRequest());
-		put(13,new AdminInfectedContactsReqeust());
+		put(13,new AdminInfectedContactsRequest());
 	}};
 	
 	public PLCAServer() throws IOException {

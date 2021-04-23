@@ -18,14 +18,15 @@ import de.noahalbers.plca.backend.server.reqeusts.RequestHandler;
 import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionCheck;
 import de.noahalbers.plca.backend.server.reqeusts.checks.PermissionChecks;
 
-public class AdminInfectedContactsReqeust extends RequestHandler{
+public class AdminInfectedContactsRequest extends RequestHandler{
 
 	/**
 	 * Responses:
 	 * 	Errors:
 	 * 		afterdate: No afterdate given
 	 * 		database: Backend failed to establish a valid database connection
-	 * 		user: The given user-id does not correspont to any user in our system or has not been passed
+	 * 		user: The user is not given.
+	 * 		not_found: the user could not be found.
 	 * 		unknown: An unkown error occurred
 	 * 		margintime: The margin-time is not given or less than 0
 	 * 	
@@ -33,7 +34,7 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 	 * 		users: Array
 	 * 			Loadable {@link UserEntity}
 	 * 			contactinfo: Array
-	 * 				Loadable contact-info for the user
+	 * 				Loadable {@link ContactInfoEntity} for the user
 	 * 	
 	 * Request:
 	 * 	afterdate: the date after which the contacts should be listed.
@@ -41,14 +42,6 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 	 * 	margintime: how many minutes of margin (spacing) should be counted to a users logout time. Represents the time that the aerosols are still present.
 	 * 
 	 */
-	
-	// All values from the contact-infos that shall be send
-	private static final String[] CONTACT_INFOS = {
-		ContactInfoEntity.CONTACT_STARTTIME,
-		ContactInfoEntity.CONTACT_STOPTIME,
-		ContactInfoEntity.INFECTED_STARTTIME,
-		ContactInfoEntity.INFECTED_STOPTIME,
-	};
 	
 	@Override
 	public PermissionCheck[] getPermissionChecks() {
@@ -85,7 +78,7 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 		try {
 			// Checks if the given user exists
 			if(!this.database.doesUserExists(request.startDatabaseConnection(), userId)) {
-				this.sendErrorMissingField(request, "user");
+				this.sendErrorMissingField(request, "not_found");
 				return;
 			}
 			
@@ -153,7 +146,7 @@ public class AdminInfectedContactsReqeust extends RequestHandler{
 			// The object where the entity will be saved to
 			JSONObject obj = new JSONObject();
 			// Deserializes the object
-			i.save(obj, CONTACT_INFOS);
+			i.save(obj, ContactInfoEntity.ATTRIBUTE_LIST);
 			// Appends the object
 			arr.put(obj);
 		}

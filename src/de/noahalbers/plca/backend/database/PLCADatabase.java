@@ -270,9 +270,6 @@ public class PLCADatabase {
 	public Map<UserEntity, List<ContactInfoEntity>> getContactInfosForUser(Connection con, int userid,
 			Timestamp afterDate, int marginTime) throws SQLException {
 
-		// Map holds all users with their contacts
-		Map<UserEntity, List<ContactInfoEntity>> users = new HashMap<UserEntity, List<ContactInfoEntity>>();
-
 		// If anything went wrong while asyncly requesting the users this value will be
 		// set
 		AtomicReference<Exception> optError = new AtomicReference<>();
@@ -371,13 +368,14 @@ public class PLCADatabase {
 				// Searches the user with the corresponding user-id (for the contact)
 				UserEntity contact = rawUsers.stream().filter(x -> x.id == i.contactID).findFirst().get();
 				// Appends the contact-info
-				users.get(contact).add(i);
+				grabbedUsers.get(contact).add(i);
 			});
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new SQLException(e);
 		}
 
-		return users;
+		return grabbedUsers;
 	}
 
 	/**
