@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Optional;
+import java.util.TimeZone;
 
 import de.noahalbers.plca.backend.backup.BackgroundTask;
 import de.noahalbers.plca.backend.config.Config;
@@ -43,7 +44,7 @@ public class PLCA {
 			.register("db_databasename", new StringValue("test"),"The name of the database")
 			.register("connection_timeout", new LongValue(5000l),"How long to wait until a connection gets closed. Time in ms")
 			.register("applogin_pubK", new RSAPublicKeyValue(new RSAPublicKeySpec(new BigInteger("0"),new BigInteger("0"))),"The rsa-public-key in json-format that is used by the login-application. Is required to authenticate the login-app")
-			.register("port", new IntegerValue(1337),"On wich port the server that is waiting for connections is running")
+			.register("port", new IntegerValue(1337),"On which port the server that is waiting for connections is running")
 			.register("backup_delay", new LongValue(1000 * 60l),"How long to wait between backups. Time in ms")
 			.register("email_host", new StringValue(""),"Domain/Ip of the remote email server")
 			.register("email_mail", new StringValue(""),"Email-address that is used to send the backup-mail")
@@ -68,6 +69,9 @@ public class PLCA {
 	 * Inits and starts the program. Should only be called once.
 	 */
 	public void init() {
+		
+		this.log.info("Will be using "+TimeZone.getDefault().getID()+" as the timezone.");
+		
 		this.database = new PLCADatabase();
 		
 		// Ensures that the current runtime support rsa and aes
