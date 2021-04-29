@@ -564,7 +564,7 @@ public class PLCADatabase {
 
 	/**
 	 * Deletes old accounts that have not been used in the specified amount of time
-	 * (using the config)
+	 * and also old timespent-entrys that no longer have a user
 	 * 
 	 * @param con
 	 *            the connection
@@ -586,6 +586,8 @@ public class PLCADatabase {
 							+ ts.toString() + "';");
 			stmt.addBatch("DROP TABLE IF EXISTS `oldUsers`;");
 
+			stmt.addBatch("DELETE t FROM `timespent` t LEFT JOIN `user` u on t.userid=u.id WHERE u.id IS NULL;");
+			
 			// Executes the batch
 			stmt.executeBatch();
 		}
