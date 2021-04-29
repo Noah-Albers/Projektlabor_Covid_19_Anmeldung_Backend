@@ -93,6 +93,8 @@ public class PLCAConnection extends Thread {
 			// Waits for the request-packet
 			JSONObject pkt = this.receivePacket();
 
+			this.log.debug("Received request-packet");
+			
 			// Holds the specified handler
 			RequestHandler handler;
 
@@ -106,7 +108,9 @@ public class PLCAConnection extends Thread {
 				// Checks if the handler exists
 				if (handler == null)
 					throw new JSONException("Invalid handler got specified.");
-
+				
+				this.log.debug("Found handler").critical(endptId);
+				
 			} catch (JSONException e) {
 				this.sendPreprocessingErrorAndClose("handler", null, ConnectionStatus.DISCONNECTED_NO_HANDLER);
 				return;
