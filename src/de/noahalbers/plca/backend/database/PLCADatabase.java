@@ -558,8 +558,7 @@ public class PLCADatabase {
 			ps.setInt(3, this.plca.getConfig().getUnsafe("autologout_after_time"));
 
 			// Executes the statement
-			if (!ps.execute())
-				throw new SQLException("Failed to send query.");
+			ps.execute();
 		}
 	}
 
