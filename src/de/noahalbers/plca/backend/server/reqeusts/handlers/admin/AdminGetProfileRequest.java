@@ -33,8 +33,7 @@ public class AdminGetProfileRequest extends RequestHandler{
 	public PermissionCheck[] getPermissionChecks() {
 		return of(
 			PermissionChecks.PERM_ADMIN,
-			PermissionChecks.CHECK_ADMIN_AUTH_CODE,
-			PermissionChecks.CHECK_ADMIN_NOT_FROZEN
+			PermissionChecks.CHECK_ADMIN_AUTH_CODE
 		);
 	}
 
