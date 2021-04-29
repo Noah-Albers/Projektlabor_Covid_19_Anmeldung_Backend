@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,6 +32,7 @@ public class AdminInfectedContactsRequest extends RequestHandler{
 	 * 		margintime: The margin-time is not given or less than 0
 	 * 	
 	 * 	Success:
+	 * 		profile: Loaded {@link UserEntity} - the profile of the requested user
 	 * 		users: Array
 	 * 			Loadable {@link UserEntity}
 	 * 			contactinfo: Array
@@ -76,11 +78,18 @@ public class AdminInfectedContactsRequest extends RequestHandler{
 		}
 		
 		try {
-			// Checks if the given user exists
-			if(!this.database.doesUserExists(request.startDatabaseConnection(), userId)) {
+			// Received the user
+			Optional<UserEntity> user = this.database.getUser(request.startDatabaseConnection(), userId);
+			
+			// Checks if the given does not exist
+			if(!user.isPresent()) {
 				this.sendErrorMissingField(request, "not_found");
 				return;
 			}
+			
+			// Saves the user to a json-object
+			JSONObject userObject = new JSONObject();
+			user.get().save(userObject, UserEntity.ATTRIBUTE_LIST);
 			
 			// Gets the contacts from the user
 			Map<UserEntity, List<ContactInfoEntity>> contacts = this.database.getContactInfosForUser(request.startDatabaseConnection(), userId, new Timestamp(afterDateStamp),marginTime);
@@ -89,6 +98,9 @@ public class AdminInfectedContactsRequest extends RequestHandler{
 			JSONObject resp = new JSONObject() {{
 				// Appends the contact info
 				put("users",convertUsersAndContactsToJson(contacts));
+				
+				// Appends the user's profile
+				put("profile",userObject);
 			}};
 			
 			// Sends the response
