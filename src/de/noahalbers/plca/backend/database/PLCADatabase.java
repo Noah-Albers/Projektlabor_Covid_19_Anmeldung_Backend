@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -55,8 +56,8 @@ public class PLCADatabase {
 		// Reference to the config
 		Config cfg = this.plca.getConfig();
 
-		return String.format("jdbc:mysql://%s:%s/%s", cfg.get("db_host"), cfg.get("db_port"),
-				cfg.get("db_databasename"));
+		return String.format("jdbc:mysql://%s:%s/%s?useLegacyDatetimeCode=false&serverTimezone=%s", cfg.get("db_host"), cfg.get("db_port"),
+				cfg.get("db_databasename"),TimeZone.getDefault().getID());
 	}
 
 	/**
@@ -278,7 +279,7 @@ public class PLCADatabase {
 		Map<UserEntity, List<ContactInfoEntity>> grabbedUsers = new HashMap<>();
 		// Received contact-infos are stored here
 		List<ContactInfoEntity> grabbedInfos = new ArrayList<>();
-
+		
 		// Prepares the threaded runnable to grab all users that had contact
 		Runnable userSelection = () -> {
 			// Prepares the query to get all infected users
@@ -288,6 +289,7 @@ public class PLCADatabase {
 				ps.setInt(1, marginTime * 60);
 				ps.setInt(2, userid);
 				ps.setTimestamp(3, afterDate);
+
 
 				// Executes the query
 				try(ResultSet res = ps.executeQuery()){					
@@ -314,6 +316,7 @@ public class PLCADatabase {
 			// Prepares the query to grab all contact infos
 			try (PreparedStatement ps = con.prepareStatement(
 					"SELECT i.start AS 'istart', (CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END) AS 'istop', c.userid AS 'cid', c.start AS 'cstart', (CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) AS 'cStop' FROM timespent i JOIN timespent c ON i.userid != c.userid AND ADDTIME(CASE WHEN i.stop IS NULL THEN UTC_TIMESTAMP() ELSE i.stop END, ?) >= c.start AND i.start <= (CASE WHEN c.stop IS NULL THEN UTC_TIMESTAMP() ELSE c.stop END) WHERE i.userid = ? AND i.stop > ?;")) {
+				
 				// Sets the values
 				ps.setInt(1, marginTime * 60);
 				ps.setInt(2, userid);
@@ -361,17 +364,19 @@ public class PLCADatabase {
 
 		// Gets the users as a keyset
 		Set<UserEntity> rawUsers = grabbedUsers.keySet();
-
+		
 		try {
 			// Iterates over all contact-infos
 			grabbedInfos.forEach(i -> {
 				// Searches the user with the corresponding user-id (for the contact)
-				UserEntity contact = rawUsers.stream().filter(x -> x.id == i.contactID).findFirst().get();
-				// Appends the contact-info
-				grabbedUsers.get(contact).add(i);
+				Optional<UserEntity> contact = rawUsers.stream().filter(x -> x.id == i.contactID).findFirst();
+				
+				// Checks if the user got found
+				if(contact.isPresent())
+					// Appends the contact-info
+					grabbedUsers.get(contact.get()).add(i);
 			});
 		} catch (Exception e) {
-			e.printStackTrace();
 			throw new SQLException(e);
 		}
 
