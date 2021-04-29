@@ -1,4 +1,4 @@
-package de.noahalbers.plca.backend.backup;
+package de.noahalbers.plca.backend.background;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;

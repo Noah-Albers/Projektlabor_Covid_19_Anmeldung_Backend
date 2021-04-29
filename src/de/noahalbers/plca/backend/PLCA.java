@@ -6,7 +6,7 @@ import java.security.spec.RSAPublicKeySpec;
 import java.util.Optional;
 import java.util.TimeZone;
 
-import de.noahalbers.plca.backend.backup.BackgroundTask;
+import de.noahalbers.plca.backend.background.BackgroundTask;
 import de.noahalbers.plca.backend.config.Config;
 import de.noahalbers.plca.backend.config.ConfigLoadException;
 import de.noahalbers.plca.backend.config.loaders.IntegerValue;
